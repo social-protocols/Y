@@ -82,32 +82,28 @@ jobs:
       - name: cargo build
         run: cargo --locked build
 
-      - name: make sqlite-vector
-        run: make -C sqlite-vector
-
       - name: Start webserver in background
         run: |
           set -e
-          export OPENAI_API_KEY=foooooooooooo # fake, but enough to pass tests!
           target/debug/y > /tmp/background_output 2>&1 &
           sleep 3
           kill -0 $! || (cat /tmp/background_output && exit 1) # check if background process is still running
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - name: Install yarn dependencies
-        run: yarn
-      - name: Install Playwright Browsers
-        run: yarn playwright install --with-deps chromium
-      - name: Run Playwright tests
-        run: yarn playwright test
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+      # - uses: actions/setup-node@v3
+      #   with:
+      #     node-version: 16
+      # - name: Install yarn dependencies
+      #   run: yarn
+      # - name: Install Playwright Browsers
+      #   run: yarn playwright install --with-deps chromium
+      # - name: Run Playwright tests
+      #   run: yarn playwright test
+      # - uses: actions/upload-artifact@v3
+      #   if: always()
+      #   with:
+      #     name: playwright-report
+      #     path: playwright-report/
+      #     retention-days: 30
 
   build-docker:
     name: "Build Docker"

@@ -21,11 +21,6 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 # build the project with a cached dependency layer
 FROM chef as builder
-# for alpine: RUN apk add git cmake make g++ musl-dev openssl-dev sqlite-dev
-RUN apt-get update && apt-get install --yes git cmake make g++ libssl-dev libsqlite3-dev
-# build sqlite-vector extension
-COPY ./sqlite-vector ./sqlite-vector
-RUN make -C sqlite-vector
 # Copy the build plan from the previous Docker stage
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this layer is cached as long as `recipe.json` doesn't change.
@@ -34,16 +29,14 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
 COPY ./src ./src
 COPY ./.sqlx ./.sqlx
-COPY ./lib ./lib
 COPY ./migrations ./migrations
 COPY ./static ./static
 RUN SQLX_OFFLINE=true cargo build --locked --release --features embed_migrations
 
 
 
-# copy the binary and sqlite-vector extension to a minimal image
+# copy the binary to a minimal image
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install --yes ca-certificates openssl sqlite3 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/y /usr/local/bin/app
-COPY --from=builder /app/sqlite-vector/vector0.so /sqlite-vector/vector0.so
 CMD ["app"]

@@ -1,6 +1,7 @@
 mod api;
 mod auth;
 mod command_line_args;
+mod db;
 mod db_setup;
 mod error;
 mod pages;

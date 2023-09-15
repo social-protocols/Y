@@ -15,3 +15,9 @@ pub struct PageMeta {
     pub description: Option<String>,
     pub url: Option<String>,
 }
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct Post {
+    pub id: i64,
+    pub content: String,
+}
