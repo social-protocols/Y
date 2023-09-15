@@ -1,12 +1,9 @@
 mod api;
 mod auth;
 mod command_line_args;
-mod db;
 mod db_setup;
 mod error;
-mod highlight;
 mod pages;
-mod prediction;
 
 mod http_server;
 mod http_static;
@@ -30,21 +27,12 @@ async fn main() -> Result<()> {
 
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
-    let mut sqlite_pool_prediction_runner = sqlite_pool.clone();
 
     // depending on the feature flags, the pool needs a mutable reference or not
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {
             res.context("http server crashed").unwrap();
         }
-
-        res = {
-            #[allow(clippy::unnecessary_mut_passed)]
-            prediction::runner::run(&command_line_args.prediction, &mut sqlite_pool_prediction_runner)
-        } => {
-            res.context("prediction runner crashed").unwrap();
-        }
-
     }
 
     Ok(())

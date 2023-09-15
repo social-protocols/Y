@@ -1,16 +1,16 @@
-# fly.toml file generated for propolis on 2023-02-21T19:29:18+01:00
+# fly.toml file generated for y on 2023-02-21T19:29:18+01:00
 
-app = "propolis"
+app = "y"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
 
 [env]
 DATABASE_URL = "sqlite:///data/data.sqlite"
-RUST_LOG="propolis=info,sqlx::query=error,tower_http=error"
+RUST_LOG="y=info,sqlx::query=error,tower_http=error"
 
 [mounts]
-source="propolis_data"
+source="y_data"
 destination="/data"
 
 [experimental]

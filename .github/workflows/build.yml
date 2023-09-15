@@ -89,7 +89,7 @@ jobs:
         run: |
           set -e
           export OPENAI_API_KEY=foooooooooooo # fake, but enough to pass tests!
-          target/debug/propolis > /tmp/background_output 2>&1 &
+          target/debug/y > /tmp/background_output 2>&1 &
           sleep 3
           kill -0 $! || (cat /tmp/background_output && exit 1) # check if background process is still running
 
@@ -170,7 +170,7 @@ jobs:
         #     file: ./Dockerfile
         #     builder: ${{ steps.buildx.outputs.name }}
         #     load: true
-        #     tags: propolis:latest
+        #     tags: y:latest
         #     cache-from: type=local,src=/tmp/.buildx-cache
         #     cache-to: type=local,dest=/tmp/.buildx-cache
 

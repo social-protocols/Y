@@ -68,15 +68,15 @@ impl User {
 }
 
 /// Changes the cookie containing the secret to a different value
-pub fn change_auth_cookie(secret: &str, cookies: &Cookies) {
-    if let Some(mut cookie) = cookies.get("secret") {
-        // copy old cookie, but also set path, since it may come from e.g. /merge
-        cookie.set_value(secret);
-        cookie.set_path("/");
-        cookie.set_max_age(COOKIE_MAX_AGE);
-        cookies.add(cookie.into_owned());
-    }
-}
+// pub fn change_auth_cookie(secret: &str, cookies: &Cookies) {
+//     if let Some(mut cookie) = cookies.get("secret") {
+//         // copy old cookie, but also set path, since it may come from e.g. /merge
+//         cookie.set_value(secret);
+//         cookie.set_path("/");
+//         cookie.set_max_age(COOKIE_MAX_AGE);
+//         cookies.add(cookie.into_owned());
+//     }
+// }
 
 fn generate_secret() -> String {
     // TODO: check if used already

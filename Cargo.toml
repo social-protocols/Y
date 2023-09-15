@@ -1,30 +1,20 @@
 [workspace]
 
-members = [
-    "lib/ai_prompt",
-    "lib/rl_queue",
-    "lib/db",
-    "lib/propolis-datas",
-    "lib/propolis-utils",
-]
-
 [package]
-name = "propolis"
+name = "y"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["with_predictions"]
+default = []
 embed_migrations = []
-with_predictions = ["dep:ai_prompt"]
 
-[workspace.dependencies]
+[dependencies]
 anyhow = "1.0.75"
 async-std = "1.12.0"
 async-trait = "0.1.73"
-db = { path = "lib/db" }
 serde = { version = "1.0.168", features = ["derive"] }
 serde_json = "1.0.106"
 sqlx = { version = "0.7", features = ["sqlite", "macros", "runtime-tokio"] }
@@ -33,18 +23,7 @@ tokio = { version = "1.32.0", features = ["full"] }
 num-derive = "0.3.3"
 num-traits = "0.2.16"
 
-[dependencies]
-# local deps
-ai_prompt = { path = "lib/ai_prompt", optional = true }
-db = { workspace = true }
-rl_queue = { path = "lib/rl_queue" }
-propolis-datas = { path = "lib/propolis-datas" }
-propolis-utils = { path = "lib/propolis-utils" }
-
-anyhow = { workspace = true }
 argon2 = "0.5.0"
-async-std = { workspace = true }
-async-trait = { workspace = true }
 axum = { version = "0.6.20", features = ["headers", "macros"] }
 base64 = "0.21.4"
 chrono = "0.4.30"
@@ -53,24 +32,21 @@ csv = "1.2.2"
 function_name = "0.3.0"
 futures = "0.3.28"
 http = "0.2.9"
-maud = { version = "0.25.0", features = ["axum"] } # https://github.com/lambda-fairy/maud/issues/366
+maud = { version = "0.25.0", features = [
+    "axum",
+] } # https://github.com/lambda-fairy/maud/issues/366
 mime_guess = "2.0.4"
-num-derive = { workspace = true }
-num-traits = { workspace = true }
 qrcode = "0.12.0"
 rand = "0.8.5"
 rust-embed = "8.0.0"
-serde = { workspace = true }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
-timediff = "0.2.3"
-tokio = { workspace = true }
 tower-cookies = "0.9.0"
-tower-http = { version = "0.4.4", features = ["fs", "compression-gzip", "trace"] }
-tracing = { workspace = true }
+tower-http = { version = "0.4.4", features = [
+    "fs",
+    "compression-gzip",
+    "trace",
+] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
-aho-corasick = "1.0.5" # search strings for multiple patterns at the same time
 once_cell = "1.18.0" # for lazy global variables
 
 [profile.dev.package.sqlx-macros]
