@@ -1,6 +1,6 @@
 //! Various structs used all over
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Representation of a user. Provides various methods to find & update them
 #[derive(Serialize, sqlx::FromRow, Debug, Clone)]
@@ -16,7 +16,7 @@ pub struct PageMeta {
     pub url: Option<String>,
 }
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Debug, Clone)]
 pub struct Post {
     pub id: i64,
     pub content: String,
