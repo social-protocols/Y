@@ -25,7 +25,7 @@ pub struct Post {
 #[derive(PartialEq, Deserialize, Copy, Clone)]
 #[non_exhaustive]
 pub enum Direction {
-    Down = 1,
+    Up = 1,
     None = 0,
-    Up = -1,
+    Down = -1,
 }
