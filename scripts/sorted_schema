@@ -10,7 +10,7 @@ export DATABASE_FILE="$TMP/data.sqlite"
 export DATABASE_URL="sqlite://$DATABASE_FILE"
 
 # The locale specified by the environment affects sort order.
-export LC_ALL="en_US.utf-8"
+export LC_ALL="C"
 
 # Apply all migrations to a temporary database.
 # redirect stdout to stderr, so it doesn't appear in the final schema
