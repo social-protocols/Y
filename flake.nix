@@ -29,10 +29,14 @@
           default = with pkgs; pkgs.mkShellNoCC {
             buildInputs = rustDevPkgs ++ [
               git
-              just
+              curl
+              less
               jq
+
+              just
               sqlx-cli
               sqlite-interactive
+
               nodePackages.browser-sync # dev hot reloading
               process-compose # orchestrate non-containerized processes
               entr # file watching
@@ -44,8 +48,6 @@
               # deployemnt
               flyctl
               docker
-              curl
-              less
             ];
           };
           buildRust = with pkgs; pkgs.mkShellNoCC {

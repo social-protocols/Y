@@ -29,11 +29,3 @@ CREATE TABLE vote_history (
     , direction integer not null
     , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
-CREATE VIEW if not exists positions as
-with upvotes_and_downvotes as ( 
-    select
-      vote_history.rowID as position_id
-      , vote_history.*
-      , first_value(created) over ( partition by user_id, post_id order by created rows between current row and unbounded following exclude current row) as cleared_at
-    from vote_history 
-) select * from upvotes_and_downvotes where direction != 0
