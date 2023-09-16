@@ -13,7 +13,8 @@ WORKDIR app
 
 # only prepares the build plan
 FROM chef as planner
-COPY . .
+COPY Cargo.toml Cargo.lock rust-toolchain.toml .
+COPY src src
 # Prepare a build plan ("recipe")
 RUN cargo chef prepare --recipe-path recipe.json
 
