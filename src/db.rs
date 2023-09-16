@@ -7,13 +7,23 @@ use crate::structs::Post;
 
 use crate::structs::Direction;
 
-pub async fn create_post(content: &str, pool: &SqlitePool) -> Result<i64> {
-    let created_post_id =
-        sqlx::query_scalar::<_, i64>("INSERT INTO posts (content) VALUES (?) RETURNING id")
-            .bind(content)
-            .fetch_one(pool)
-            .await?;
+pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
+    let created_post_id = sqlx::query_scalar::<_, i64>(
+        "INSERT INTO posts (content, parent_id) VALUES (?, ?) RETURNING id",
+    )
+    .bind(content)
+    .bind(parent_id)
+    .fetch_one(pool)
+    .await?;
     Ok(created_post_id)
+}
+
+pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Post> {
+    let post = sqlx::query_as::<_, Post>("select id, content from posts where id = ?")
+        .bind(post_id)
+        .fetch_one(pool)
+        .await?;
+    Ok(post)
 }
 
 pub async fn vote(
@@ -25,20 +35,24 @@ pub async fn vote(
 ) -> Result<()> {
     let direction_i32 = direction as i32;
 
-    sqlx::query("INSERT INTO vote_history (user_id, post_id, note_id, direction) VALUES (?, ?,?,?)")
-        .bind(user_id)
-        .bind(post_id)
-        .bind(note_id)
-        .bind(direction_i32)
-        .execute(pool)
-        .await?;
+    sqlx::query(
+        "INSERT INTO vote_history (user_id, post_id, note_id, direction) VALUES (?, ?,?,?)",
+    )
+    .bind(user_id)
+    .bind(post_id)
+    .bind(note_id)
+    .bind(direction_i32)
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
 
-pub async fn list_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
-    let posts = sqlx::query_as::<_, Post>("SELECT id, content FROM posts ORDER BY created DESC")
-        .fetch_all(pool)
-        .await?;
+pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
+    let posts = sqlx::query_as::<_, Post>(
+        "SELECT id, content FROM posts where parent_id is null ORDER BY created DESC",
+    )
+    .fetch_all(pool)
+    .await?;
     Ok(posts)
 }

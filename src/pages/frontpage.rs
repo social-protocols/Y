@@ -43,13 +43,15 @@ fn create_post_form() -> Markup {
 }
 
 async fn posts(pool: &SqlitePool) -> Result<Markup> {
-    let posts = db::list_posts(pool).await?;
+    let posts = db::list_top_level_posts(pool).await?;
     Ok(html! {
         div {
             @for post in posts.iter() {
                 div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-                    div {
-                        (post.content)
+                    a href=(format!("/view_post/{}", post.id)) {
+                        div {
+                            (post.content)
+                        }
                     }
 
                     form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {

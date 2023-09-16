@@ -7,7 +7,7 @@ CREATE TABLE users (
 create table posts (
     id integer primary key -- row id
     , content text not null
-    , parent integer references posts (id) on delete cascade on update cascade -- nullable
+    , parent_id integer references posts (id) on delete cascade on update cascade -- nullable
     , question_id integer references posts (id) on delete cascade on update cascade -- nullable
         -- if a question is a top-level question -> no parent and question_id = id
         -- if a question is a reply -> parent is the id of the post it replies to
