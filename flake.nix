@@ -44,6 +44,8 @@
               # deployemnt
               flyctl
               docker
+              curl
+              less
             ];
           };
           buildRust = with pkgs; pkgs.mkShellNoCC {
