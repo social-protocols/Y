@@ -21,7 +21,7 @@
         };
 
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        rustPkgs = [ rustToolchain ] ++ (with pkgs; [ openssl pkg-config cmake sqlite cargo-chef ]);
+        rustPkgs = [ rustToolchain ] ++ (with pkgs; [ openssl pkg-config cargo-chef ]);
         rustDevPkgs = rustPkgs ++ (with pkgs; [ cargo-watch rust-analyzer ]);
       in
       {
