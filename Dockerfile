@@ -13,7 +13,8 @@ WORKDIR app
 
 # only prepares the build plan
 FROM chef as planner
-COPY . .
+COPY Cargo.toml Cargo.lock rust-toolchain.toml .
+COPY src src
 # Prepare a build plan ("recipe")
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -24,9 +25,9 @@ FROM chef as builder
 # Copy the build plan from the previous Docker stage
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this layer is cached as long as `recipe.json` doesn't change.
+COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build the full project
-COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
 COPY ./src ./src
 COPY ./.sqlx ./.sqlx
 COPY ./migrations ./migrations
