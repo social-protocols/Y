@@ -37,16 +37,20 @@ jobs:
           # This is correct, because we're using a merge queue which only merges when built against the latest target branch.
           # https://docs.mergify.com/actions/queue/
           ref: ${{ github.event.pull_request.head.sha }}
-          submodules: recursive
 
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@v25
+        with:
+          nix_conf: |
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+            keep-outputs = true
+
+      - name: Warm up nix-shell
+        run: nix develop --ignore-environment . --command echo
 
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
-
-      - name: Install tools
-        run: cargo install sqlx-cli --version 0.7.0 --no-default-features --features sqlite
 
       - name: load envrc
         uses: HatsuneMiku3939/direnv-action@5125e822ed891bfd72ceffc3d13873c59f2bdd74 # pin@v1
