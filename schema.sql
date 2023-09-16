@@ -1,7 +1,7 @@
 CREATE TABLE posts (
     id integer primary key -- row id
     , content text not null
-    , parent integer references posts (id) on delete cascade on update cascade -- nullable
+    , parent_id integer references posts (id) on delete cascade on update cascade -- nullable
     , question_id integer references posts (id) on delete cascade on update cascade -- nullable
         -- if a question is a top-level question -> no parent and question_id = id
         -- if a question is a reply -> parent is the id of the post it replies to
@@ -23,10 +23,11 @@ CREATE TABLE users (
   created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE vote_history (
-    post_id not null references posts (id) on delete cascade on update cascade
-    , user_id not null references users (id) on delete cascade on update cascade
-    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
+    user_id not null references users (id) on delete cascade on update cascade
+    , post_id not null references posts (id) on delete cascade on update cascade
+    , note_id references posts (id) on delete cascade on update cascade
     , direction integer not null
+    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
 CREATE VIEW if not exists positions as
 with upvotes_and_downvotes as ( 
