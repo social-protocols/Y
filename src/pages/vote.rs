@@ -1,6 +1,7 @@
 use axum::response::IntoResponse;
 use axum::{Extension, Form};
 use http::StatusCode;
+use maud::{html, Markup};
 use sqlx::SqlitePool;
 use tower_cookies::Cookies;
 
@@ -27,8 +28,7 @@ pub async fn vote(
     cookies: Cookies,
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<VoteRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    println!("vote");
+) -> Result<Markup, AppError> {
     let user = User::get_or_create(&cookies, &pool).await?;
     db::vote(
         user.id,
@@ -39,5 +39,5 @@ pub async fn vote(
     )
     .await?;
 
-    Ok((StatusCode::OK, [("HX-Location", "/")]))
+    Ok(html! {"voted"})
 }

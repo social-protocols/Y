@@ -55,7 +55,7 @@ pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
 
 fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
     html! {
-        form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {
+        form form id="form" hx-post="/vote" hx-trigger="click" {
             input type="hidden" value=(post_id) name="post_id";
             @if let Some(note_id) = note_id {
                 input type="hidden" value=(note_id) name="note_id";
@@ -109,7 +109,7 @@ async fn replies(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
                         }
                     }
 
-                    form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {
+                    form form id="form" hx-post="/vote" hx-trigger="click" {
                         input type="hidden" value=(post.id) name="post_id";
 
                         button
