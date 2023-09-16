@@ -21,7 +21,7 @@
         };
 
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        rustPkgs = [ rustToolchain ] ++ (with pkgs; [ openssl pkg-config cargo-chef ]);
+        rustPkgs = [ rustToolchain ];
         rustDevPkgs = rustPkgs ++ (with pkgs; [ cargo-watch rust-analyzer ]);
       in
       {
@@ -49,7 +49,10 @@
             ];
           };
           buildRust = with pkgs; pkgs.mkShellNoCC {
-            buildInputs = rustPkgs;
+            buildInputs = rustPkgs ++ [ cargo-chef ];
+          };
+          ci = with pkgs; pkgs.mkShellNoCC {
+            buildInputs = rustPkgs ++ [ sqlx-cli ];
           };
         };
       }

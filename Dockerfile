@@ -25,9 +25,9 @@ FROM chef as builder
 # Copy the build plan from the previous Docker stage
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this layer is cached as long as `recipe.json` doesn't change.
+COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build the full project
-COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
 COPY ./src ./src
 COPY ./.sqlx ./.sqlx
 COPY ./migrations ./migrations
