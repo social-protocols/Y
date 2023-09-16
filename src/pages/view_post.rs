@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 use axum::{extract::Path, Extension};
 use maud::{html, Markup};
 use sqlx::SqlitePool;

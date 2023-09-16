@@ -12,7 +12,7 @@ default = []
 embed_migrations = []
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = { version = "1.0.75", features = ["backtrace"] }
 async-std = "1.12.0"
 async-trait = "0.1.73"
 serde = { version = "1.0.168", features = ["derive"] }

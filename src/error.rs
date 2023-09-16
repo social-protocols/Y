@@ -1,21 +1,29 @@
-//! Error handling related code
-
-use axum::response::IntoResponse;
+use axum::{
+    response::{IntoResponse, Response},
+    Json,
+};
 use http::StatusCode;
+use serde_json::json;
 
-// Make our own error that wraps `anyhow::Error`.
+// https://github.com/tokio-rs/axum/blob/main/examples/anyhow-error-response/src/main.rs
 pub struct AppError(pub anyhow::Error);
 
 // Tell axum how to convert `AppError` into a response.
+// https://github.com/tokio-rs/axum/discussions/713
 impl IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        let msg = self.0.to_string();
-        tracing::error!("{msg}");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {msg}"),
-        )
-            .into_response()
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AppError(inner) => {
+                tracing::debug!("stacktrace: {}", inner.backtrace());
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
+            }
+        };
+
+        let body = Json(json!({
+            "error": error_message,
+        }));
+
+        (status, body).into_response()
     }
 }
 
@@ -26,6 +34,6 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        AppError(err.into())
     }
 }
