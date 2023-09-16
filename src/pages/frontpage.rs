@@ -50,7 +50,7 @@ async fn posts(pool: &SqlitePool) -> Result<Markup> {
                 div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
                     div {
                         a href=(format!("/view_post/{}", post.id)) {
-                            (post_details(post.id, &pool).await?)
+                            (post_details(post.id, pool).await?)
                         }
                     }
                 }

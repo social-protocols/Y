@@ -28,8 +28,8 @@ pub async fn view_post(
 }
 
 pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
-    let post = db::get_post(post_id, &pool).await?;
-    let top_note = db::get_top_note(post_id, &pool).await?;
+    let post = db::get_post(post_id, pool).await?;
+    let top_note = db::get_top_note(post_id, pool).await?;
     let top_note_id = top_note.clone().map(|post| post.id);
     Ok(html! {
         div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
