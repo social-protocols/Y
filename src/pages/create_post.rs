@@ -1,3 +1,4 @@
+use axum::extract::Query;
 use axum::response::IntoResponse;
 use axum::{Extension, Form};
 use http::StatusCode;
@@ -10,7 +11,7 @@ use crate::db;
 use crate::error::AppError;
 use serde::Deserialize;
 
-fn default_none() -> Option<i64> {
+fn default_none<T>() -> Option<T> {
     None
 }
 
@@ -21,7 +22,14 @@ pub struct CreatePostForm {
     post_parent_id: Option<i64>,
 }
 
+#[derive(Deserialize)]
+pub struct Redirect {
+    #[serde(default = "default_none")]
+    redirect: Option<String>,
+}
+
 pub async fn create_post(
+    redirect: Query<Redirect>,
     _cookies: Cookies,
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<CreatePostForm>,
@@ -37,5 +45,7 @@ pub async fn create_post(
     )
     .await?;
 
-    Ok((StatusCode::OK, [("HX-Location", "/")]))
+    let redirect_url = redirect.0.redirect.unwrap_or_else(|| "/".to_string());
+
+    Ok((StatusCode::OK, [("HX-Location", redirect_url)]))
 }

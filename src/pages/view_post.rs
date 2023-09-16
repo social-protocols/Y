@@ -83,7 +83,7 @@ fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
 fn reply_form(parent_id: i64) -> Markup {
     html! {
         div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10" {
-            form hx-post="/create_post" {
+            form hx-post=(format!("/create_post?redirect=/view_post/{}", parent_id)) {
                 input type="hidden" name="post_parent_id" value=(format!("{}", parent_id)) {}
                 textarea name="post_content" class="p-10 resize-none w-full text-black" placeholder="Enter your reply" {
                 }
