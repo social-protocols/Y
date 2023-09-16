@@ -1,6 +1,6 @@
-use crate::db;
 use crate::error::AppError;
 use crate::structs::User;
+use crate::{db, pages::view_post::post_details};
 
 use anyhow::Result;
 use axum::Extension;
@@ -16,7 +16,7 @@ pub async fn frontpage(
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
     let content = html! {
-        div class="mb-10 flex justify-center" {
+        div class="mb-10" {
             div {
                 (create_post_form())
                 (posts(&_pool).await?)
@@ -48,31 +48,10 @@ async fn posts(pool: &SqlitePool) -> Result<Markup> {
         div {
             @for post in posts.iter() {
                 div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-                    a href=(format!("/view_post/{}", post.id)) {
-                        div {
-                            (post.content)
+                    div {
+                        a href=(format!("/view_post/{}", post.id)) {
+                            (post_details(post.id, &pool).await?)
                         }
-                    }
-
-                    form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {
-                        input type="hidden" value=(post.id) name="post_id";
-
-                        button
-                            class=""
-                            name="direction"
-                            value="Up"
-                        {
-                            "▲"
-                        }
-
-                        button
-                            class=""
-                            name="direction"
-                            value="Down"
-                        {
-                            "▼"
-                        }
-
                     }
                 }
             }

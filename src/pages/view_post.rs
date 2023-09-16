@@ -15,27 +15,8 @@ pub async fn view_post(
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
     let post = db::get_post(post_id, &pool).await?;
-    let top_note = db::get_top_note(post_id, &pool).await?;
-    let top_note_id = top_note.clone().map(|post| post.id);
     let content = html! {
-        div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-            div {
-                (post.content)
-            }
-            div {
-                @match top_note.clone() {
-                    Some(post) => {
-                        a href=(format!("/view_post/{}", post.id)) {
-                            div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" { (post.content) }
-                        }
-                    },
-                    None => div {},
-                }
-            }
-            div {
-                (vote_form(post.id, top_note_id))
-            }
-        }
+        (post_details(post_id, &pool).await?)
         div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
             div {
                 (reply_form(post_id))
@@ -46,16 +27,39 @@ pub async fn view_post(
     Ok(base.title("Y").content(content).render())
 }
 
+pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
+    let post = db::get_post(post_id, &pool).await?;
+    let top_note = db::get_top_note(post_id, &pool).await?;
+    let top_note_id = top_note.clone().map(|post| post.id);
+    Ok(html! {
+        div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
+            div {
+                (post.content)
+            }
+            div {
+                @match top_note.clone() {
+                    Some(post) => {
+                        a href=(format!("/view_post/{}", post.id)) {
+                            p class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" { (post.content) }
+                        }
+                    },
+                    None => div {},
+                }
+            }
+            div {
+                (vote_form(post.id, top_note_id))
+            }
+        }
+    })
+}
+
 fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
-    let name = match note_id {
-        Some(num) => num.to_string(),
-        None => "".to_string(),
-    };
     html! {
         form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {
             input type="hidden" value=(post_id) name="post_id";
-            input type="hidden" value=(name) name="note_id";
-
+            @if let Some(note_id) = note_id {
+                input type="hidden" value=(note_id) name="note_id";
+            }
             button
                 class=""
                 name="direction"
