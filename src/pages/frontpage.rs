@@ -30,7 +30,7 @@ fn create_post_form() -> Markup {
     html! {
         div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10" {
             form hx-post="/create_post" {
-                textarea name="post_content" class="p-10 resize-none w-full" placeholder="Say something" {
+                textarea name="post_content" class="p-10 resize-none w-full text-black" placeholder="Say something" {
                 }
                 div class="flex justify-end" {
                     button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" {
