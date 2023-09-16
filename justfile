@@ -78,3 +78,6 @@ download-prod-db:
   rm -f "$DATABASE_FILE"-wal
   flyctl ssh console -C "sqlite3 /data/data.sqlite '.backup /data/backup.sqlite'"
   flyctl ssh sftp get data/backup.sqlite "$DATABASE_FILE" || true
+
+sqlite:
+  sqlite3 $DATABASE_FILE 

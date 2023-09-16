@@ -29,7 +29,6 @@ async fn main() -> Result<()> {
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
 
-    // depending on the feature flags, the pool needs a mutable reference or not
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {
             res.context("http server crashed").unwrap();

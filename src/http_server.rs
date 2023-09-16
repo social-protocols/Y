@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crate::api;
 use crate::http_static::static_handler;
-use crate::pages::{self, create_post::create_post};
+use crate::pages::{self, create_post::create_post, vote::vote};
 use anyhow::Result;
 use axum::routing::post;
 use axum::Extension;
@@ -22,6 +22,7 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
     app = app
         .route("/", get(frontpage))
         .route("/create_post", post(create_post))
+        .route("/vote", post(vote))
         .route("/options", get(options));
 
     let apiv0 = Router::new()

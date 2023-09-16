@@ -17,8 +17,9 @@ create table posts (
 );
 
 create table vote_history (
-    post_id not null references posts (id) on delete cascade on update cascade
-    , user_id not null references users (id) on delete cascade on update cascade
-    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
+    user_id not null references users (id) on delete cascade on update cascade
+    , post_id not null references posts (id) on delete cascade on update cascade
+    , note_id references posts (id) on delete cascade on update cascade
     , direction integer not null
+    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );

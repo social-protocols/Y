@@ -47,8 +47,31 @@ async fn posts(pool: &SqlitePool) -> Result<Markup> {
     Ok(html! {
         div {
             @for post in posts.iter() {
-                div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700 flex" {
-                    (post.content)
+                div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
+                    div {
+                        (post.content)
+                    }
+
+                    form form id="form" hx-post="/vote" hx-trigger="click" hx-swap="none" {
+                        input type="hidden" value=(post.id) name="post_id";
+
+                        button
+                            class=""
+                            name="direction"
+                            value="Up"
+                        {
+                            "▲"
+                        }
+
+                        button
+                            class=""
+                            name="direction"
+                            value="Down"
+                        {
+                            "▼"
+                        }
+
+                    }
                 }
             }
         }

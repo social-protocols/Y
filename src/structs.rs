@@ -1,6 +1,6 @@
 //! Various structs used all over
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 /// Representation of a user. Provides various methods to find & update them
 #[derive(Serialize, sqlx::FromRow, Debug, Clone)]
@@ -20,4 +20,12 @@ pub struct PageMeta {
 pub struct Post {
     pub id: i64,
     pub content: String,
+}
+
+#[derive(PartialEq, Deserialize, Copy, Clone)]
+#[non_exhaustive]
+pub enum Direction {
+    Down = 1,
+    None = 0,
+    Up = -1,
 }
