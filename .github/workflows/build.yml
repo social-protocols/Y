@@ -47,7 +47,7 @@ jobs:
             keep-outputs = true
 
       - name: Warm up nix-shell
-        run: nix develop --ignore-environment . --command echo
+        run: nix develop --ignore-environment ".#ci" --command echo
 
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
