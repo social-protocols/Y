@@ -56,3 +56,24 @@ pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
     .await?;
     Ok(posts)
 }
+
+pub async fn list_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
+    let posts = sqlx::query_as::<_, Post>(
+        "SELECT id, content FROM posts where parent_id is ? ORDER BY created DESC",
+    )
+    .bind(post_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(posts)
+}
+
+pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
+    let note = sqlx::query_as::<_, Post>(
+        "select id, content from posts where parent_id = ? order by random() limit 1;
+",
+    )
+    .bind(post_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(note)
+}
