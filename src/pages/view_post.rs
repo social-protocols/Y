@@ -18,11 +18,7 @@ pub async fn view_post(
     let post = db::get_post(post_id, &pool).await?;
     let content = html! {
         (post_details(post_id, &pool).await?)
-        div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-            div {
-                (reply_form(post_id))
-            }
-        }
+        (reply_form(post_id))
         (replies(post.id, &pool).await?)
     };
     Ok(base.title("Y").content(content).render())

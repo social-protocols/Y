@@ -23,9 +23,7 @@ pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
                     None => div {},
                 }
             }
-            div {
-                (vote_form(post.id, top_note_id))
-            }
+            (vote_form(post.id, top_note_id))
         }
     })
 }

@@ -47,11 +47,9 @@ async fn posts(pool: &SqlitePool) -> Result<Markup> {
     Ok(html! {
         div {
             @for post in posts.iter() {
-                div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-                    div {
-                        a href=(format!("/view_post/{}", post.id)) {
-                            (post_details(post.id, pool).await?)
-                        }
+                div {
+                    a href=(format!("/view_post/{}", post.id)) {
+                        (post_details(post.id, pool).await?)
                     }
                 }
             }
