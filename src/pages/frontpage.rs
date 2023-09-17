@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::structs::User;
-use crate::{db, pages::view_post::post_details};
+use crate::{db, pages::components::post_details};
 
 use anyhow::Result;
 use axum::Extension;
