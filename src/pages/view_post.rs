@@ -1,10 +1,12 @@
 use anyhow::Result;
+use async_recursion::async_recursion;
 use axum::{extract::Path, Extension};
 use maud::{html, Markup};
 use sqlx::SqlitePool;
 
 use crate::db;
 use crate::pages::components::{post_details, vote_form};
+use crate::structs::Post;
 use crate::{error::AppError, structs::User};
 
 use super::base_template::BaseTemplate;
@@ -17,11 +19,27 @@ pub async fn view_post(
 ) -> Result<Markup, AppError> {
     let post = db::get_post(post_id, &pool).await?;
     let content = html! {
+        (parent_thread(&post, &pool).await?)
         (post_details(post_id, &pool).await?)
         (reply_form(post_id))
         (replies(post.id, &pool).await?)
     };
     Ok(base.title("Y").content(content).render())
+}
+
+#[async_recursion]
+async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
+    Ok(html! {
+        @if post.parent_id.is_none() {
+            div {}
+        } @else {
+            @let parent = db::get_post(post.parent_id.unwrap(), pool).await?;
+            div {
+                (parent_thread(&parent, pool).await?)
+                (parent.content)
+            }
+        }
+    })
 }
 
 fn reply_form(parent_id: i64) -> Markup {

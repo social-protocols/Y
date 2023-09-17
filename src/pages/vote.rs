@@ -1,6 +1,4 @@
-use axum::response::IntoResponse;
 use axum::{Extension, Form};
-use http::StatusCode;
 use maud::{html, Markup};
 use sqlx::SqlitePool;
 use tower_cookies::Cookies;

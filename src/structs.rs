@@ -20,6 +20,7 @@ pub struct PageMeta {
 pub struct Post {
     pub id: i64,
     pub content: String,
+    pub parent_id: Option<i64>,
 }
 
 #[derive(PartialEq, Deserialize, Copy, Clone)]

@@ -19,7 +19,7 @@ pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePoo
 }
 
 pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Post> {
-    let post = sqlx::query_as::<_, Post>("select id, content from posts where id = ?")
+    let post = sqlx::query_as::<_, Post>("select id, content, parent_id from posts where id = ?")
         .bind(post_id)
         .fetch_one(pool)
         .await?;
@@ -50,7 +50,7 @@ pub async fn vote(
 
 pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT id, content FROM posts where parent_id is null ORDER BY created DESC",
+        "SELECT id, content, parent_id FROM posts where parent_id is null ORDER BY created DESC",
     )
     .fetch_all(pool)
     .await?;
@@ -59,7 +59,7 @@ pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
 
 pub async fn list_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT id, content FROM posts where parent_id is ? ORDER BY created DESC",
+        "SELECT id, content, parent_id FROM posts where parent_id is ? ORDER BY created DESC",
     )
     .bind(post_id)
     .fetch_all(pool)
@@ -69,8 +69,7 @@ pub async fn list_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> 
 
 pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     let note = sqlx::query_as::<_, Post>(
-        "select id, content from posts where parent_id = ? order by random() limit 1;
-",
+        "select id, content, parent_id from posts where parent_id = ? order by random() limit 1",
     )
     .bind(post_id)
     .fetch_optional(pool)
