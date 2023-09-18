@@ -34,8 +34,8 @@ async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
             div {}
         } @else {
             @let parent = db::get_post(post.parent_id.unwrap(), pool).await?;
-            div {
-                (parent_thread(&parent, pool).await?)
+            (parent_thread(&parent, pool).await?)
+            div class="truncate mb-2 p-2 rounded-lg shadow bg-white dark:bg-slate-600" {
                 (parent.content)
             }
         }
@@ -52,7 +52,7 @@ fn reply_form(parent_id: i64) -> Markup {
                     value=(format!("{}", parent_id)) {}
                 textarea
                     name="post_content"
-                    class="p-10 resize-none w-full text-black"
+                    class="p-5 resize-none w-full text-black"
                     placeholder="Enter your reply" {}
                 div class="flex justify-end" {
                     button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-none" {

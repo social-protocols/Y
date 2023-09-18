@@ -10,14 +10,14 @@ pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
     let top_note_id = top_note.clone().map(|post| post.id);
     Ok(html! {
         div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
-            div {
+            div class="mb-5" {
                 (post.content)
             }
             div {
                 @match top_note.clone() {
                     Some(post) => {
                         a href=(format!("/view_post/{}", post.id)) {
-                            p class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" { (post.content) }
+                            p class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-800" { (post.content) }
                         }
                     },
                     None => div {},
