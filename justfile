@@ -81,3 +81,6 @@ download-prod-db:
 
 sqlite:
   sqlite3 $DATABASE_FILE 
+
+working-query:
+  sqlite3 $DATABASE_FILE < working-query.sql 

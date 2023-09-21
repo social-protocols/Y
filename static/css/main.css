@@ -13,3 +13,17 @@ body {
     margin-right: 0;
   }
 }
+
+
+
+
+/* VOTE WIDGET */
+
+.vote.upvoted a.upvote {
+  color: green;
+}
+
+.vote.downvoted a.downvote {
+  color: darkred;
+}
+
