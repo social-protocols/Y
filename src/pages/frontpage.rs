@@ -11,15 +11,23 @@ use sqlx::SqlitePool;
 use crate::pages::base_template::BaseTemplate;
 
 pub async fn frontpage(
-    _maybe_user: Option<User>,
+    maybe_user: Option<User>,
     Extension(_pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
+
+    let maybe_user_id = match maybe_user {
+        None => None,
+        Some(user) => Some(user.id),
+    };
+
+
+
     let content = html! {
         div class="mb-10" {
             div {
                 (create_post_form())
-                (posts(&_pool).await?)
+                (posts(maybe_user_id, &_pool).await?)
             }
         }
     };
@@ -42,14 +50,14 @@ fn create_post_form() -> Markup {
     }
 }
 
-async fn posts(pool: &SqlitePool) -> Result<Markup> {
+async fn posts(maybe_user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
     let posts = db::list_top_level_posts(pool).await?;
     Ok(html! {
         div {
             @for post in posts.iter() {
                 div {
                     a href=(format!("/view_post/{}", post.id)) {
-                        (post_details(post.id, pool).await?)
+                        (post_details(post.id, maybe_user_id, pool).await?)
                     }
                 }
             }

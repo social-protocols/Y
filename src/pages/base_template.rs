@@ -32,6 +32,7 @@ fn render_base_template(
                 link rel="manifest" href="/site.webmanifest";
                 link rel="mask-icon" href="/safari-pinned-tab.svg" color="#da8d2b";
 
+
                 meta name="msapplication-TileColor" content="#2b5797";
                 meta name="theme-color" content="#ffffff";
 
@@ -61,6 +62,7 @@ fn render_base_template(
                 @for file in StaticAsset::iter().filter(|path| path.starts_with("js-defer/")) {
                     script defer src={"/"(file)} {}
                 }
+
 
                 title { (title.unwrap_or("Y".to_string())) }
             }

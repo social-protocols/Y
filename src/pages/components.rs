@@ -4,10 +4,17 @@ use sqlx::SqlitePool;
 
 use crate::db;
 
-pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
+use crate::structs::Direction;
+
+pub async fn post_details(post_id: i64, user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
     let post = db::get_post(post_id, pool).await?;
     let top_note = db::get_top_note(post_id, pool).await?;
     let top_note_id = top_note.clone().map(|post| post.id);
+    let current_vote = match user_id {
+        None => Direction::None,
+        Some(user_id) => db::get_current_vote(post_id, user_id, pool).await?
+    };
+
     Ok(html! {
         div class="mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
             div class="mb-5" {
@@ -23,34 +30,72 @@ pub async fn post_details(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
                     None => div {},
                 }
             }
-            (vote_form(post.id, top_note_id))
+            (vote_form(post.id, top_note_id, current_vote))
         }
     })
 }
 
-pub fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
+pub fn vote_form(post_id: i64, note_id: Option<i64>, current_vote: Direction) -> Markup {
+    // Todo: initial state from DB if this user has voted
+
     html! {
         form form id="form" hx-post="/vote" hx-trigger="click" {
+            (vote_buttons(post_id, note_id, current_vote))
+        }
+    }
+}
+
+
+
+pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Markup {
+
+
+    let vote_state_string = match state {
+        Direction::Up => "upvoted",
+        Direction::Down => "downvoted",
+        Direction::None => "",
+    };
+
+    // hack until I can figure out how to use css styles in this project.
+    let upvote_style_string = match state {
+        Direction::Up => "color: green",
+        _ => "",
+    };
+
+    let downvote_style_string = match state {
+        Direction::Down => "color: red",
+        _ => "",
+    };
+
+
+    html! {
+        span class=(format!("vote {}", vote_state_string)) {
             input type="hidden" value=(post_id) name="post_id";
+            input type="hidden" value=(state) name="state";
             @if let Some(note_id) = note_id {
                 input type="hidden" value=(note_id) name="note_id";
             }
             button
-                class=""
+                class="upvote"
                 name="direction"
                 value="Up"
+                style=(upvote_style_string) 
             {
                 "▲"
             }
 
             button
-                class=""
+                class="downvote"
                 name="direction"
                 value="Down"
+                style=(downvote_style_string) 
             {
                 "▼"
             }
-
         }
     }
 }
+
+
+
+

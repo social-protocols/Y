@@ -1,5 +1,7 @@
 //! Various structs used all over
 
+extern crate derive_more;
+use derive_more::{Display};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a user. Provides various methods to find & update them
@@ -23,7 +25,7 @@ pub struct Post {
     pub parent_id: Option<i64>,
 }
 
-#[derive(PartialEq, Deserialize, Copy, Clone)]
+#[derive(PartialEq, Deserialize, Copy, Clone, Display)]
 #[non_exhaustive]
 pub enum Direction {
     Up = 1,

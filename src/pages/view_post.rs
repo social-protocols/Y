@@ -7,22 +7,26 @@ use sqlx::SqlitePool;
 use crate::db;
 use crate::pages::components::{post_details, vote_form};
 use crate::structs::Post;
+use crate::structs::Direction;
 use crate::{error::AppError, structs::User};
 
 use super::base_template::BaseTemplate;
 
 pub async fn view_post(
     Path(post_id): Path<i64>,
-    _maybe_user: Option<User>,
+    maybe_user: Option<User>,
     Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
     let post = db::get_post(post_id, &pool).await?;
+
+    let maybe_user_id = maybe_user.map(|u| u.id);
+   
     let content = html! {
         (parent_thread(&post, &pool).await?)
-        (post_details(post_id, &pool).await?)
+        (post_details(post_id, maybe_user_id, &pool).await?)
         (reply_form(post_id))
-        (replies(post.id, &pool).await?)
+        (replies(post.id, maybe_user_id, &pool).await?)
     };
     Ok(base.title("Y").content(content).render())
 }
@@ -64,8 +68,15 @@ fn reply_form(parent_id: i64) -> Markup {
     }
 }
 
-async fn replies(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
+async fn replies(post_id: i64, maybe_user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
     let replies = db::list_replies(post_id, pool).await?;
+
+
+    let current_vote = match maybe_user_id {
+        None => Direction::None,
+        Some(id) => db::get_current_vote(post_id, id, pool).await?,
+    };
+
     Ok(html! {
         div {
             @for post in replies.iter() {
@@ -77,7 +88,7 @@ async fn replies(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
                     }
                     ({
                         let top_note = db::get_top_note(post.id, pool).await?;
-                        vote_form(post.id, top_note.map(|post| post.id))
+                        vote_form(post.id, top_note.map(|post| post.id), current_vote)
                     })
                 }
             }
