@@ -108,6 +108,9 @@ group by 1,2;
 
 insert into posts(id, content, parent_id, question_id) values (1, "So, pregnant people can’t cross state lines to get abortions but guys like Kyle Rittenhouse can cross state lines to murder people. Seems fair.", null, null);
 insert into posts(id, content, parent_id, question_id) values (2, "Kyle Rittenhouse was acquitted of murder charges. Clear video evidence showed he acted in self defense.", 1, null);
+insert into posts(id, content, parent_id, question_id) values (3, "That trial was a sham. All the jurors where white.", 2, null);
+
+
 
 insert into users(id, secret) values (100, "secret100");
 insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, null, 1);

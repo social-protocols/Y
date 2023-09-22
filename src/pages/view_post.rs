@@ -23,7 +23,7 @@ pub async fn view_post(
     let maybe_user_id = maybe_user.map(|u| u.id);
    
     let content = html! {
-        (parent_thread(&post, &pool).await?)
+        (parent_thread(&post, maybe_user_id, &pool).await?)
         (post_details(post_id, maybe_user_id, &pool).await?)
         (reply_form(post_id))
         (replies(post.id, maybe_user_id, &pool).await?)
@@ -32,18 +32,33 @@ pub async fn view_post(
 }
 
 #[async_recursion]
-async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
-    Ok(html! {
-        @if post.parent_id.is_none() {
-            div {}
-        } @else {
-            @let parent = db::get_post(post.parent_id.unwrap(), pool).await?;
-            (parent_thread(&parent, pool).await?)
-            div class="truncate mb-2 p-2 rounded-lg shadow bg-white dark:bg-slate-600" {
-                (parent.content)
+async fn parent_thread(post: &Post, maybe_user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
+
+    if post.parent_id.is_none() {
+        Ok(html! { div {} })
+    } else {
+        let parent_id = post.parent_id.unwrap();
+
+        let current_parent_vote = match maybe_user_id {
+            None => Direction::None,
+            Some(id) => db::get_current_vote(parent_id, id, pool).await?,
+        };
+
+        Ok(html! {
+            @let parent = db::get_post(parent_id, pool).await?;
+            (parent_thread(&parent, maybe_user_id, pool).await?)
+
+
+            a href=(format!("/view_post/{}", parent_id)) {
+                div class="truncate mb-2 p-3 rounded-lg shadow bg-gray-80 dark:bg-slate-600 ml-4" {
+                    (parent.content)
+                    ({
+                        vote_form(parent_id, Some(post.id), current_parent_vote)
+                    })
+                }
             }
-        }
-    })
+        })    
+    }
 }
 
 fn reply_form(parent_id: i64) -> Markup {
