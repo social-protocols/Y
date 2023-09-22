@@ -87,7 +87,7 @@ pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
 pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     let note = sqlx::query_as::<_, Post>(
         // for now, order consistently until we have a scoring formula.
-        "select id, content, parent_id from posts where parent_id = ? order by created desc limit 1",
+        "select id, content, parent_id from posts where parent_id = ? order by created ASC limit 1",
     )
     .bind(post_id)
     .fetch_optional(pool)
