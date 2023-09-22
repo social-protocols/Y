@@ -6,6 +6,9 @@ use crate::db;
 
 use crate::structs::Direction;
 
+use crate::pages::vote::vote_buttons;
+
+
 pub async fn post_details(post_id: i64, user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
     let post = db::get_post(post_id, pool).await?;
     let top_note = db::get_top_note(post_id, pool).await?;
