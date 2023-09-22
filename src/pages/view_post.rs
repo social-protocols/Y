@@ -71,8 +71,10 @@ async fn replies(post_id: i64, maybe_user_id: Option<i64>, pool: &SqlitePool) ->
 
     Ok(html! {
         div {
-            @for post in replies[1..].iter() {
-                (note(Some(post.clone()), Direction::None))
+            @if replies.len() > 0 { 
+                @for post in replies[1..].iter() {
+                    (note(Some(post.clone()), Direction::None))
+                }
             }
         }
     })
