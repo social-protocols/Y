@@ -29,3 +29,60 @@ CREATE TABLE vote_history (
     , direction integer not null
     , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
+CREATE VIEW current_vote as
+with latest as (
+    SELECT
+      user_id
+      , post_id
+      , direction
+      , max(created) AS created
+    FROM vote_history
+    GROUP BY 1,2
+) select * from latest where direction != 0
+/* current_vote(user_id,post_id,direction,created) */;
+CREATE VIEW informed_tally as
+with informed_votes as (
+    SELECT
+      user_id
+      , post_id
+      , note_id
+      , direction
+      , max(created) AS created
+    FROM vote_history
+    WHERE direction != 0
+    and note_id is not null
+    GROUP BY 1,2,3
+)
+select
+  A.post_id
+  , A.note_id
+
+  , count(*)                                            as votes_given_seen_note
+
+  , sum(case when A.direction = 1 then 1 else 0 end) as upvotes_given_seen_note
+
+  , sum(case when A.direction = 1 
+              and B.direction = 1 then 1 else 0 end) as upvotes_given_upvoted_note
+
+  , sum(case when B.direction = 1 then 1 else 0 end) as votes_given_upvoted_note
+
+  , sum(case when A.direction = 1 
+              and B.direction = -1 then 1 else 0 end) as upvotes_given_downvoted_note
+
+  , sum(case when B.direction = -1 then 1 else 0 end) as votes_given_downvoted_note
+from 
+    informed_votes A
+    left join current_vote B
+    on (A.note_id = B.post_id and A.user_id = B.user_id)
+group by 1,2
+/* informed_tally(post_id,note_id,votes_given_seen_note,upvotes_given_seen_note,upvotes_given_upvoted_note,votes_given_upvoted_note,upvotes_given_downvoted_note,votes_given_downvoted_note) */;
+CREATE VIEW stats as
+select
+  post_id
+  , sum(case when direction = 1 then 1 else 0 end) as upvotes
+  , count(*) as votes
+  -- , sum(case when note_id is null and direction = 1 then 1 else 0 end) as upvotes_given_not_seen_any_note
+  -- , sum(case when note_id is null then 1 else 0 end) as votes_given_not_seen_any_note
+from current_vote 
+group by 1
+/* stats(post_id,upvotes,votes) */;

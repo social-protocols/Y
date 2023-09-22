@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use maud::{Markup,html};
+use maud::{html, Markup};
 use sqlx::SqlitePool;
 use tower_cookies::Cookies;
 
@@ -28,7 +28,6 @@ pub async fn vote(
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<VoteRequest>,
 ) -> Result<Markup, AppError> {
-
     // First, interpret the user intent based on the button pressed **and** the current state.
     let new_state = if form_data.direction == form_data.state {
         Direction::None
@@ -37,7 +36,6 @@ pub async fn vote(
     };
 
     // println!("{:?} {:?} {:?}", form_data.direction, form_data.state, new_state);
-
 
     let user = User::get_or_create(&cookies, &pool).await?;
     db::vote(
@@ -49,13 +47,14 @@ pub async fn vote(
     )
     .await?;
 
-    Ok(vote_buttons(form_data.post_id, form_data.note_id, new_state))
+    Ok(vote_buttons(
+        form_data.post_id,
+        form_data.note_id,
+        new_state,
+    ))
 }
 
 pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Markup {
-
-
-    // hack until I can figure out how to use css styles in this project.
     let upvote_style_class = match state {
         Direction::Up => "text-green-500",
         _ => "",
@@ -91,6 +90,3 @@ pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Mar
         }
     }
 }
-
-
-

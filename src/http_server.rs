@@ -29,6 +29,8 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
 
     let apiv0 = Router::new()
         .route("/user/create", post(api::create_user))
+        .route("/frontpage", get(api::frontpage))
+        .route("/view_post/:post_id", get(api::view_post))
         .layer(Extension(sqlite_pool.clone()));
 
     app = app

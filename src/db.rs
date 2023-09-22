@@ -18,17 +18,29 @@ pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePoo
     Ok(created_post_id)
 }
 
-pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Post> {
-
-
-
-
+pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     let post = sqlx::query_as::<_, Post>("select id, content, parent_id from posts where id = ?")
         .bind(post_id)
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await?;
 
     Ok(post)
+}
+
+pub async fn get_transitive_parents(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
+    // loop until a post without parent_id is found
+    let mut post_id = post_id;
+    let mut parents: Vec<Post> = vec![];
+    while let Some(post) = get_post(post_id, pool).await? {
+        match post.parent_id {
+            None => break,
+            Some(parent_id) => {
+                parents.push(post);
+                post_id = parent_id;
+            }
+        }
+    }
+    Ok(parents)
 }
 
 pub async fn vote(
@@ -62,7 +74,7 @@ pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
     Ok(posts)
 }
 
-pub async fn list_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
+pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
         "SELECT id, content, parent_id FROM posts where parent_id is ? ORDER BY created DESC",
     )
@@ -83,34 +95,14 @@ pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post
     Ok(note)
 }
 
-
-
 pub async fn get_current_vote(post_id: i64, user_id: i64, pool: &SqlitePool) -> Result<Direction> {
+    let vote = sqlx::query_scalar::<_, i32>(
+        "select direction from current_vote where post_id = ? and user_id = ?",
+    )
+    .bind(post_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
 
-    // print something here
-    println!("post id, user_id: {:?} {:?}", post_id, user_id);
-
-    // run the rollowing query go get the current vote as a Direction value and return the value
-  // "select direction from current_vote where post_id = ? and user_id = ?",
-    let vote = sqlx::query_scalar::<_, i32>("select direction from current_vote where post_id = ? and user_id = ?")
-        .bind(post_id)
-        .bind(user_id)
-        .fetch_optional(pool)
-        .await?;
-
-    let vote = match vote {
-        Some(vote) => vote,
-        None => return Ok(Direction::None),
-    };
-
-    let vote = match vote {
-        1 => Direction::Up,
-        -1 => Direction::Down,
-        _ => unreachable!(),
-    };
-
-    Ok(vote)
-
-
-
+    Direction::from(vote.unwrap_or(0))
 }

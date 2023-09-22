@@ -15,13 +15,10 @@ pub async fn frontpage(
     Extension(_pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
-
     let maybe_user_id = match maybe_user {
         None => None,
         Some(user) => Some(user.id),
     };
-
-
 
     let content = html! {
         div class="mb-10" {
@@ -57,7 +54,7 @@ async fn posts(maybe_user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> 
             @for post in posts.iter() {
                 div {
                     a href=(format!("/view_post/{}", post.id)) {
-                        (post_details(post.id, maybe_user_id, pool).await?)
+                        (post_details(post, maybe_user_id, pool).await?)
                     }
                 }
             }

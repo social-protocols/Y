@@ -4,18 +4,16 @@ use sqlx::SqlitePool;
 
 use crate::db;
 
-use crate::structs::Direction;
+use crate::structs::{Direction, Post};
 
 use crate::pages::vote::vote_buttons;
 
-
-pub async fn post_details(post_id: i64, user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
-    let post = db::get_post(post_id, pool).await?;
-    let top_note = db::get_top_note(post_id, pool).await?;
+pub async fn post_details(post: &Post, user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> {
+    let top_note = db::get_top_note(post.id, pool).await?;
     let top_note_id = top_note.clone().map(|post| post.id);
     let current_vote = match user_id {
         None => Direction::None,
-        Some(user_id) => db::get_current_vote(post_id, user_id, pool).await?
+        Some(user_id) => db::get_current_vote(post.id, user_id, pool).await?,
     };
 
     Ok(html! {
@@ -47,4 +45,3 @@ pub fn vote_form(post_id: i64, note_id: Option<i64>, current_vote: Direction) ->
         }
     }
 }
-

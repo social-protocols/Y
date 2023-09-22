@@ -1,7 +1,10 @@
 //! Various structs used all over
 
 extern crate derive_more;
-use derive_more::{Display};
+use anyhow::{anyhow, Result};
+use derive_more::Display;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
 /// Representation of a user. Provides various methods to find & update them
@@ -25,10 +28,15 @@ pub struct Post {
     pub parent_id: Option<i64>,
 }
 
-#[derive(PartialEq, Deserialize, Copy, Clone, Display)]
-#[non_exhaustive]
+#[derive(Debug, PartialEq, Deserialize, Copy, Clone, FromPrimitive, Display)]
 pub enum Direction {
     Up = 1,
     None = 0,
     Down = -1,
+}
+
+impl Direction {
+    pub fn from(direction: i32) -> Result<Direction> {
+        FromPrimitive::from_i32(direction).ok_or(anyhow!("Unknown direction value: {}", direction))
+    }
 }
