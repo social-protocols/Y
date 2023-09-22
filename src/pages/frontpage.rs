@@ -38,10 +38,15 @@ fn create_post_form() -> Markup {
     html! {
         div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10" {
             form hx-post="/create_post" {
-                textarea name="post_content" class="p-10 resize-none w-full text-black" placeholder="Say something" {
+                div class="mr-1" {
+                    textarea 
+                        name="post_content" 
+                        // class="p-10 resize-none w-full text-black" 
+                        class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" cols="100" rows="1"
+                        placeholder="Say something" {}
                 }
-                div class="flex justify-end" {
-                    button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" {
+                div class="justify-end" {
+                    button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-right" {
                         "Submit"
                     }
                 }
@@ -55,11 +60,7 @@ async fn posts(maybe_user_id: Option<i64>, pool: &SqlitePool) -> Result<Markup> 
     Ok(html! {
         div {
             @for post in posts.iter() {
-                div {
-                    a href=(format!("/view_post/{}", post.id)) {
-                        (post_details(post.id, maybe_user_id, pool).await?)
-                    }
-                }
+                    (post_details(post.id, maybe_user_id, false, pool).await?)
             }
         }
     })

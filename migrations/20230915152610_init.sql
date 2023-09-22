@@ -112,6 +112,12 @@ insert into posts(id, content, parent_id, question_id) values (3, "That trial wa
 
 
 
+insert into posts(id, content, parent_id, question_id) values (4, "Sudafed, Benadryl and most decongestants don’t work: FDA advisory panel https://trib.al/sJmOJBP", null, null);
+
+insert into posts(id, content, parent_id, question_id) values (5, "This is misleading. Regular Benadryl is an antihistamine; it is not a decongestant. There is a Benadryl branded product that is impacted.
+https://www.nbcnews.com/news/amp/rcna104424", 4, null);
+
+
 insert into users(id, secret) values (100, "secret100");
 insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, null, 1);
 insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1);

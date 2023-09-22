@@ -92,5 +92,3 @@ pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Mar
     }
 }
 
-
-
