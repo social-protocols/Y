@@ -69,7 +69,7 @@ fn render_base_template(
             body class="bg-slate-100 dark:bg-slate-800 dark:text-white" {
                 nav class="px-5 py-3" {
                     ul class="flex gap-6" {
-                        li class="mr-auto" { a href="/" data-testid="nav-home" { "Home" } }
+                        li class="mr-auto text-3xl font-black" { a href="/" data-testid="nav-home" { "𝕐" } }
                         // first 4 characters of user id
                         @if let Some(user) = user {
                             li {
