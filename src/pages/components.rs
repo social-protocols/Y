@@ -39,7 +39,7 @@ pub fn vote_form(post_id: i64, note_id: Option<i64>, current_vote: Direction) ->
     // Todo: initial state from DB if this user has voted
 
     html! {
-        form form id="form" hx-post="/vote" hx-trigger="click" {
+        form id="form" hx-post="/vote" hx-trigger="click" {
             (vote_buttons(post_id, note_id, current_vote))
         }
     }
@@ -49,46 +49,43 @@ pub fn vote_form(post_id: i64, note_id: Option<i64>, current_vote: Direction) ->
 
 pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Markup {
 
-
-    let vote_state_string = match state {
-        Direction::Up => "upvoted",
-        Direction::Down => "downvoted",
-        Direction::None => "",
-    };
+    // let vote_state_string = match state {
+    //     Direction::Up => "upvoted",
+    //     Direction::Down => "downvoted",
+    //     Direction::None => "",
+    // };
 
     // hack until I can figure out how to use css styles in this project.
-    let upvote_style_string = match state {
-        Direction::Up => "color: green",
+    let upvote_style_class = match state {
+        Direction::Up => "text-green-500",
         _ => "",
     };
 
-    let downvote_style_string = match state {
-        Direction::Down => "color: red",
+    let downvote_style_class = match state {
+        Direction::Down => "text-red-500",
         _ => "",
     };
 
 
     html! {
-        span class=(format!("vote {}", vote_state_string)) {
+        span  {
             input type="hidden" value=(post_id) name="post_id";
             input type="hidden" value=(state) name="state";
             @if let Some(note_id) = note_id {
                 input type="hidden" value=(note_id) name="note_id";
             }
             button
-                class="upvote"
+                class=(format!("upvote {upvote_style_class}"))
                 name="direction"
                 value="Up"
-                style=(upvote_style_string) 
             {
                 "▲"
             }
 
             button
-                class="downvote"
+                class=(format!("downvote {downvote_style_class}"))
                 name="direction"
                 value="Down"
-                style=(downvote_style_string) 
             {
                 "▼"
             }
