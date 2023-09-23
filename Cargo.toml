@@ -1,15 +1,16 @@
-[workspace]
-
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [package]
 name = "y"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 default = []
 embed_migrations = []
+
+[lib]
+name = "common"
+path = "src/lib/mod.rs"
 
 [dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }

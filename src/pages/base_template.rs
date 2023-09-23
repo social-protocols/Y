@@ -1,14 +1,11 @@
 use async_trait::async_trait;
 use axum::extract::FromRequestParts;
+use common::structs::{PageMeta, User};
 use http::HeaderMap;
 use maud::{html, Markup, DOCTYPE};
 use tower_cookies::Cookies;
 
-use crate::{
-    http_static::StaticAsset,
-    structs::{PageMeta, User},
-    util::base_url,
-};
+use crate::{http_static::StaticAsset, util::base_url};
 
 fn render_base_template(
     title: Option<String>,

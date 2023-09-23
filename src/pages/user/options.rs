@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::pages::base_template::BaseTemplate;
-use crate::structs::User;
+use common::structs::User;
 use crate::util::base_url;
 use maud::{html, Markup};
 

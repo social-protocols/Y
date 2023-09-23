@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use serde::{Deserialize, Serialize};
 
 use axum::{
     extract::{self, Path},
@@ -7,72 +6,16 @@ use axum::{
     Extension, Json, TypedHeader,
 };
 
+use common::{
+    auth,
+    structs_api::{ApiFrontpage, ApiPost, ApiPostPage, ApiVote},
+};
 use sqlx::SqlitePool;
 
-use crate::{
-    db,
-    error::AppError,
-    structs::{Direction, User},
-};
-
-fn default_none() -> Option<i64> {
-    None
-}
-
-#[derive(Serialize)]
-pub struct ApiPost {
-    id: i64,
-    content: String,
-}
-
-#[derive(Serialize)]
-pub struct ApiFrontpage {
-    posts: Vec<ApiPost>,
-}
-
-#[derive(Serialize)]
-pub struct ApiPostPage {
-    parent_context: Vec<ApiPost>,
-    post: ApiPost,
-    note: Option<ApiPost>,
-    replies: Vec<ApiPost>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ApiVote {
-    post_id: i64,
-    #[serde(default = "default_none")]
-    note_id: Option<i64>,
-    direction: ApiDirection,
-}
-
-#[derive(Serialize, Deserialize)]
-enum ApiDirection {
-    Up,
-    None,
-    Down,
-}
-
-impl ApiDirection {
-    pub fn from(direction: Direction) -> ApiDirection {
-        match direction {
-            Direction::Up => ApiDirection::Up,
-            Direction::None => ApiDirection::None,
-            Direction::Down => ApiDirection::Down,
-        }
-    }
-
-    pub fn to_direction(&self) -> Direction {
-        match self {
-            ApiDirection::Up => Direction::Up,
-            ApiDirection::None => Direction::None,
-            ApiDirection::Down => Direction::Down,
-        }
-    }
-}
+use crate::{db, error::AppError};
 
 pub async fn create_user(Extension(pool): Extension<SqlitePool>) -> Result<String, AppError> {
-    let user = User::create(&pool).await?;
+    let user = auth::create_user(&pool).await?;
     Ok(user.secret)
 }
 
@@ -139,7 +82,7 @@ pub async fn vote(
 ) -> Result<(), AppError> {
     // TODO: is it possible to get user from baerer token using axum middleware?
     let secret = bearer.token();
-    let user = User::from_secret(secret, &pool)
+    let user = auth::user_from_secret(secret, &pool)
         .await?
         .ok_or(anyhow!("Unauthorized"))?; // TODO: return proper HTTP header, by sending a
 

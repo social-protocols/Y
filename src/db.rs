@@ -1,11 +1,6 @@
-//! Database access via sqlx
-
 use anyhow::Result;
+use common::structs::{Direction, Post};
 use sqlx::SqlitePool;
-
-use crate::structs::Post;
-
-use crate::structs::Direction;
 
 pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(

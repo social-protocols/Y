@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::structs::User;
+use common::structs::User;
 use crate::{db, pages::components::post_details};
 
 use anyhow::Result;

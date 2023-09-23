@@ -4,7 +4,7 @@ use sqlx::SqlitePool;
 
 use crate::db;
 
-use crate::structs::{Direction, Post};
+use common::structs::{Direction, Post};
 
 use crate::pages::vote::vote_buttons;
 

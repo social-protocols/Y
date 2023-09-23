@@ -1,5 +1,4 @@
 mod api;
-mod auth;
 mod command_line_args;
 mod db;
 mod db_setup;
@@ -9,7 +8,6 @@ mod pages;
 mod http_server;
 mod http_static;
 
-mod structs;
 mod util;
 
 use clap::Parser;

@@ -4,10 +4,10 @@ use maud::{html, Markup};
 use sqlx::SqlitePool;
 
 use crate::db;
+use crate::error::AppError;
 use crate::pages::components::{post_details, vote_form};
-use crate::structs::Direction;
-use crate::structs::Post;
-use crate::{error::AppError, structs::User};
+use common::structs::Post;
+use common::structs::{Direction, User};
 
 use super::base_template::BaseTemplate;
 
