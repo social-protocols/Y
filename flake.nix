@@ -21,7 +21,7 @@
         };
 
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        rustPkgs = [ rustToolchain ];
+        rustPkgs = [ rustToolchain ] ++ (with pkgs; [ openssl pkg-config ]);
         rustDevPkgs = rustPkgs ++ (with pkgs; [ cargo-watch rust-analyzer ]);
       in
       {

@@ -6,18 +6,18 @@ fn default_none() -> Option<i64> {
     None
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApiPost {
     pub id: i64,
     pub content: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApiFrontpage {
     pub posts: Vec<ApiPost>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApiPostPage {
     pub parent_context: Vec<ApiPost>,
     pub post: ApiPost,
@@ -25,7 +25,7 @@ pub struct ApiPostPage {
     pub replies: Vec<ApiPost>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApiVote {
     pub post_id: i64,
     #[serde(default = "default_none")]
@@ -33,7 +33,7 @@ pub struct ApiVote {
     pub direction: ApiDirection,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ApiDirection {
     Up,
     None,
