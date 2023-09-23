@@ -29,15 +29,29 @@ CREATE TABLE vote_history (
     , direction integer not null
     , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
+CREATE VIEW current_tally as
+select
+  post_id
+  , sum(case when direction = 1 then 1 else 0 end) as upvotes
+  , count(*) as votes
+  -- , sum(case when note_id is null and direction = 1 then 1 else 0 end) as upvotes_given_not_seen_any_note
+  -- , sum(case when note_id is null then 1 else 0 end) as votes_given_not_seen_any_note
+from current_vote 
+group by 1
+/* current_tally(post_id,upvotes,votes) */;
 CREATE VIEW current_vote as
 with latest as (
     SELECT
       user_id
       , post_id
+      -- TODO: Check whether this is reliable behavior. From what I can tell, direction will be the direction from teh record
+      -- corresponding to max(created), that it, it will be the value of the user's latest vote
       , direction
       , max(created) AS created
     FROM vote_history
     GROUP BY 1,2
+
+-- The latest vote might be zero, so in that case we don't return a record for this user and post
 ) select * from latest where direction != 0
 /* current_vote(user_id,post_id,direction,created) */;
 CREATE VIEW informed_tally as
@@ -76,13 +90,3 @@ from
     on (A.note_id = B.post_id and A.user_id = B.user_id)
 group by 1,2
 /* informed_tally(post_id,note_id,votes_given_seen_note,upvotes_given_seen_note,upvotes_given_upvoted_note,votes_given_upvoted_note,upvotes_given_downvoted_note,votes_given_downvoted_note) */;
-CREATE VIEW stats as
-select
-  post_id
-  , sum(case when direction = 1 then 1 else 0 end) as upvotes
-  , count(*) as votes
-  -- , sum(case when note_id is null and direction = 1 then 1 else 0 end) as upvotes_given_not_seen_any_note
-  -- , sum(case when note_id is null then 1 else 0 end) as votes_given_not_seen_any_note
-from current_vote 
-group by 1
-/* stats(post_id,upvotes,votes) */;
