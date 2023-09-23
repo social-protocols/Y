@@ -49,7 +49,7 @@ jobs:
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
 
-      - name: load envrc
+      - name: load envrc (nix develop)
         uses: HatsuneMiku3939/direnv-action@5125e822ed891bfd72ceffc3d13873c59f2bdd74 # pin@v1
 
       - name: Migrate database
