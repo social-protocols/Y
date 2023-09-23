@@ -8,6 +8,9 @@ mod pages;
 mod http_server;
 mod http_static;
 
+mod probabilities;
+mod structs;
+
 mod util;
 
 use clap::Parser;
@@ -26,6 +29,9 @@ async fn main() -> Result<()> {
 
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
+
+    let p = crate::probabilities::informed_p_of_a(1, &sqlite_pool).await?;
+    println!("P is {}",p);
 
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {
