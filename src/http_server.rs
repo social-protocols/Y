@@ -31,6 +31,7 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
         .route("/user/create", post(api::create_user))
         .route("/frontpage", get(api::frontpage))
         .route("/view_post/:post_id", get(api::view_post))
+        .route("/vote", post(api::vote))
         .layer(Extension(sqlite_pool.clone()));
 
     app = app

@@ -1,11 +1,23 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 
-use axum::{extract::Path, Extension, Json};
+use axum::{
+    extract::{self, Path},
+    headers::{authorization::Bearer, Authorization},
+    Extension, Form, Json, TypedHeader,
+};
 
 use sqlx::SqlitePool;
 
-use crate::{db, error::AppError, structs::User};
-use serde::Serialize;
+use crate::{
+    db,
+    error::AppError,
+    structs::{Direction, User},
+};
+
+fn default_none() -> Option<i64> {
+    None
+}
 
 #[derive(Serialize)]
 pub struct ApiPost {
@@ -13,17 +25,50 @@ pub struct ApiPost {
     content: String,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct ApiFrontpage {
     posts: Vec<ApiPost>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct ApiPostPage {
     parent_context: Vec<ApiPost>,
     post: ApiPost,
     note: Option<ApiPost>,
     replies: Vec<ApiPost>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiVote {
+    post_id: i64,
+    #[serde(default = "default_none")]
+    note_id: Option<i64>,
+    direction: ApiDirection,
+}
+
+#[derive(Serialize, Deserialize)]
+enum ApiDirection {
+    Up,
+    None,
+    Down,
+}
+
+impl ApiDirection {
+    pub fn from(direction: Direction) -> ApiDirection {
+        match direction {
+            Direction::Up => ApiDirection::Up,
+            Direction::None => ApiDirection::None,
+            Direction::Down => ApiDirection::Down,
+        }
+    }
+
+    pub fn to_direction(&self) -> Direction {
+        match self {
+            ApiDirection::Up => Direction::Up,
+            ApiDirection::None => Direction::None,
+            ApiDirection::Down => Direction::Down,
+        }
+    }
 }
 
 pub async fn create_user(Extension(pool): Extension<SqlitePool>) -> Result<String, AppError> {
@@ -84,4 +129,29 @@ pub async fn view_post(
         }
         None => None,
     }))
+}
+
+// curl -v http://127.0.0.1:8000/api/v0/vote -d '{"post_id": 2, "note_id": 17, "direction": "Down"}' -H "Authorization: Bearer xxxxxxxxx" -H "Content-Type: application/json"
+pub async fn vote(
+    Extension(pool): Extension<SqlitePool>,
+    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+    extract::Json(payload): extract::Json<ApiVote>,
+) -> Result<(), AppError> {
+    // TODO: is it possible to get user from baerer token using axum middleware?
+    let secret = bearer.token();
+    let user = User::from_secret(secret, &pool)
+        .await?
+        .ok_or(anyhow!("Unauthorized"))?; // TODO: return proper HTTP header, by sending a
+
+    // TODO: better http status code if post/note doesn't exist
+    db::vote(
+        user.id,
+        payload.post_id,
+        payload.note_id,
+        payload.direction.to_direction(),
+        &pool,
+    )
+    .await?;
+
+    Ok(())
 }
