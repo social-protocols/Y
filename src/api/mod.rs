@@ -41,7 +41,7 @@ pub async fn view_post(
     let post = db::get_post(post_id, &pool).await?;
     Ok(Json(match post {
         Some(post) => {
-            let parent_context = db::get_transitive_parents(post_id, &pool).await?;
+            let parent_context = db::get_transitive_parents(&post, &pool).await?;
             let top_note = db::get_top_note(post_id, &pool).await?;
             let replies = db::get_replies(post_id, &pool).await?;
             Some(ApiPostPage {

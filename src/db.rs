@@ -1,7 +1,6 @@
-use anyhow::Result;
 use common::structs::{Direction, Post};
-use sqlx::SqlitePool;
 
+use anyhow::{Result, anyhow};
 pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(
         "INSERT INTO posts (content, parent_id) VALUES (?, ?) RETURNING id",
@@ -22,16 +21,17 @@ pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     Ok(post)
 }
 
-pub async fn get_transitive_parents(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
-    // loop until a post without parent_id is found
-    let mut post_id = post_id;
+pub async fn get_transitive_parents(post: &Post, pool: &SqlitePool) -> Result<Vec<Post>> {
     let mut parents: Vec<Post> = vec![];
-    while let Some(post) = get_post(post_id, pool).await? {
-        match post.parent_id {
-            None => break,
-            Some(parent_id) => {
-                parents.push(post);
-                post_id = parent_id;
+    let mut p = post.clone();
+
+    // loop until a post without parent_id is found
+    while let Some(parent_id) = p.parent_id {
+        match get_post(parent_id, pool).await? {
+            None => return Err(anyhow!("Couldn't find post with id: {}", parent_id)),
+            Some(parent_post) => {
+                parents.push(parent_post.clone());
+                p = parent_post;
             }
         }
     }

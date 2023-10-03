@@ -39,8 +39,7 @@ async fn parent_thread(
     maybe_user_id: Option<i64>,
     pool: &SqlitePool,
 ) -> Result<Markup> {
-    let transitive_parents: Vec<Post> = db::get_transitive_parents(post.id, pool).await?;
-
+    let transitive_parents: Vec<Post> = db::get_transitive_parents(&post, pool).await?;
     Ok(html! {
         @for parent in transitive_parents.iter().rev() {
             a href=(format!("/view_post/{}", parent.id)) {
