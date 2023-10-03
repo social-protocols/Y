@@ -10,7 +10,7 @@ use crate::db;
 const WEIGHT_CONSTANT: f64 = 2.3;
 
 fn global_prior() -> BetaDistribution {
-    BetaDistribution{average: 0.5, weight: WEIGHT_CONSTANT}
+    BetaDistribution{average: 0.875, weight: WEIGHT_CONSTANT}
 }
 
 const EMPTY_TALLY: Tally = Tally{upvotes: 0, total: 0};
@@ -70,6 +70,7 @@ pub struct InformedTally {
     given_shown_note: Tally,
 }
 
+
 pub async fn informed_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<BetaDistribution> {
 
     let top_note = db::get_top_note(post_id, pool).await?;
@@ -102,7 +103,7 @@ fn p_of_a_given_shown_b(tally: InformedTally) -> BetaDistribution {
     prior.bayesian_average(tally.given_shown_note) 
 }
 
-pub async fn informed_tally(
+async fn informed_tally(
     post_id: i64,
     note_id: i64,
     pool: &SqlitePool,

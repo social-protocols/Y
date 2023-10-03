@@ -9,7 +9,7 @@ mod http_server;
 mod http_static;
 
 mod probabilities;
-mod structs;
+// mod structs;
 
 mod util;
 
