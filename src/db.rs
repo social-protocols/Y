@@ -1,6 +1,10 @@
 use common::structs::{Direction, Post};
 
 use anyhow::{Result, anyhow};
+
+use sqlx::SqlitePool;
+
+
 pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(
         "INSERT INTO posts (content, parent_id) VALUES (?, ?) RETURNING id",
