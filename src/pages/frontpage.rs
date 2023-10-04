@@ -1,6 +1,8 @@
 use crate::error::AppError;
 
-use crate::{db, pages::components::post_details, pages::positions::load_positions_js_for_homepage};
+use crate::{
+    db, pages::components::post_details, pages::positions::load_positions_js_for_homepage,
+};
 use common::structs::User;
 
 use anyhow::Result;
@@ -16,7 +18,6 @@ pub async fn frontpage(
     Extension(_pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
-
     let content = html! {
         div class="mb-10" {
             div {
@@ -31,7 +32,7 @@ pub async fn frontpage(
 
 fn create_post_form() -> Markup {
     html! {
-        div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10 flex" {
+        div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10 flex dark:bg-slate-700" {
             form hx-post="/create_post" {
                 div class="w-full flex" {
                     div class="mr-1" {
