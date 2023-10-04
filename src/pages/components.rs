@@ -36,7 +36,7 @@ pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Resu
                     None => div {},
                 }
             }
-            div class="w-full flex" {
+            div class="w-full flex mt-4" {
                 (vote_form(post.id, top_note_id))
                 // (vote_state(post_id, note_id))
                 @if focused { 
