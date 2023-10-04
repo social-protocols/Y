@@ -36,7 +36,7 @@ pub struct ApiVote {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ApiDirection {
     Up,
-    None,
+    Neutral,
     Down,
 }
 
@@ -44,7 +44,7 @@ impl ApiDirection {
     pub fn from(direction: Direction) -> ApiDirection {
         match direction {
             Direction::Up => ApiDirection::Up,
-            Direction::None => ApiDirection::None,
+            Direction::Neutral => ApiDirection::Neutral,
             Direction::Down => ApiDirection::Down,
         }
     }
@@ -52,7 +52,7 @@ impl ApiDirection {
     pub fn to_direction(&self) -> Direction {
         match self {
             ApiDirection::Up => Direction::Up,
-            ApiDirection::None => Direction::None,
+            ApiDirection::Neutral => Direction::Neutral,
             ApiDirection::Down => Direction::Down,
         }
     }

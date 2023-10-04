@@ -5,6 +5,9 @@ use sqlx::SqlitePool;
 use crate::db;
 
 use common::structs::{Direction, Post};
+use common::structs::Direction::Up;
+use common::structs::Direction::Down;
+use common::structs::Direction::Neutral;
 
 use crate::pages::vote::vote_buttons;
 
@@ -12,15 +15,15 @@ pub async fn post_details(post: &Post, user_id: Option<i64>, focused: bool, pool
     let top_note = db::get_top_note(post.id, pool).await?;
     let top_note_id = top_note.clone().map(|post| post.id);
     let current_vote = match user_id {
-        None => Direction::None,
+        None => Neutral,
         Some(user_id) => db::get_current_vote(post.id, user_id, pool).await?,
     };
 
 
     let top_note_vote = match user_id {
-        None => Direction::None,
+        None => Neutral,
         Some(user_id) => match top_note_id {
-            None => Direction::None,
+            None => Neutral,
             Some(note_id) => db::get_current_vote(note_id, user_id, pool).await?,
         }
     };
@@ -34,9 +37,9 @@ pub async fn post_details(post: &Post, user_id: Option<i64>, focused: bool, pool
     // };
 
     // let top_note_class = match top_note_vote {
-    //     Direction::None => "",
-    //     Direction::Up => "bg-green-50",
-    //     Direction::Down => "bg-red-50",
+    //     Neutral => "",
+    //     Up => "bg-green-50",
+    //     Down => "bg-red-50",
     // };
 
     Ok(html! {
@@ -72,9 +75,9 @@ pub fn show_vote(vote: Direction) -> Markup {
     html! {
         
             @match vote {
-                Direction::None => "",
-                Direction::Up => div {"you upvoted"},
-                Direction::Down => div {"you downvoted"},
+                Neutral => "",
+                Up => div {"you upvoted"},
+                Down => div {"you downvoted"},
             }
     }
 }
@@ -120,9 +123,9 @@ pub fn reply_form(parent_id: i64) -> Markup {
 pub fn vote_class(current_vote: Direction) -> &'static str {
 
     match current_vote {
-        Direction::None => "border-r-4 border-transparent",
-        Direction::Up => "border-r-4 border-green-600",
-        Direction::Down => "border-r-4 border-red-600",
+        Neutral => "border-r-4 border-transparent",
+        Up => "border-r-4 border-green-600",
+        Down => "border-r-4 border-red-600",
     }
 }
 

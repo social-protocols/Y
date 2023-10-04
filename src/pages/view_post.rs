@@ -55,7 +55,7 @@ async fn parent_thread(
                 ({
 
                     let current_vote = match maybe_user_id {
-                        None => Direction::None,
+                        None => Direction::Neutral,
                         Some(id) => db::get_current_vote(parent.id, id, pool).await?,
                     };
 

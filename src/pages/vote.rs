@@ -8,7 +8,11 @@ use crate::db;
 use crate::error::AppError;
 use serde::Deserialize;
 
-use common::structs::Direction;
+use anyhow::Result;
+
+
+use common::structs::{Direction};
+use common::structs::Direction::{Up, Down, Neutral};
 
 fn default_none() -> Option<i64> {
     None
@@ -30,7 +34,7 @@ pub async fn vote(
 ) -> Result<Markup, AppError> {
     // First, interpret the user intent based on the button pressed **and** the current state.
     let new_state = if form_data.direction == form_data.state {
-        Direction::None
+        Neutral
     } else {
         form_data.direction
     };

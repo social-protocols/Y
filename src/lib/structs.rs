@@ -28,10 +28,10 @@ pub struct Post {
     pub parent_id: Option<i64>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Copy, Clone, FromPrimitive, Display)]
+#[derive(Debug, PartialEq, Deserialize, Copy, Clone, FromPrimitive, Display, Serialize)]
 pub enum Direction {
     Up = 1,
-    None = 0,
+    Neutral = 0,
     Down = -1,
 }
 
