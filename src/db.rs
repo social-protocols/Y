@@ -52,7 +52,29 @@ pub async fn vote(
     let direction_i32 = direction as i32;
 
     sqlx::query(
-        "INSERT INTO vote_history (user_id, post_id, note_id, direction) VALUES (?, ?,?,?)",
+        r#"
+            with parameters as (
+                select 
+                    ? as user_id,
+                    ? as post_id,
+                    ? as note_id,
+                    ? as direction
+            )
+            , duplicates as (
+              select parameters.user_id, parameters.post_id, parameters.direction == ifnull(current_vote.direction,0) as duplicate
+              from parameters 
+              left join current_vote using (user_id, post_id)
+            )
+            insert into vote_history(user_id, post_id, direction) 
+            select 
+              parameters.user_id
+              , parameters.post_id
+              , parameters.direction
+            from parameters
+            join duplicates
+            where not duplicate
+            ;
+        "#,
     )
     .bind(user_id)
     .bind(post_id)
