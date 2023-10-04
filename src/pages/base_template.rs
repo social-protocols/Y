@@ -29,6 +29,8 @@ fn render_base_template(
                 link rel="manifest" href="/site.webmanifest";
                 link rel="mask-icon" href="/safari-pinned-tab.svg" color="#da8d2b";
 
+                link rel="javascript" href="/vote.js";
+                link rel="stylesheet" href="/css/vote.css";
 
                 meta name="msapplication-TileColor" content="#2b5797";
                 meta name="theme-color" content="#ffffff";

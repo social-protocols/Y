@@ -1,0 +1,29 @@
+
+.post.voted {
+  border-right: solid black 4px;
+}
+
+.post.upvoted {
+  border-color: green;
+}
+
+.post.downvoted {
+  border-color: red;
+}
+
+/* Make vote buttons invisible until the current state has been set by vote.js */
+.vote-form {
+  display: none;
+}
+
+.vote-form.ready {
+  display: inline-block;
+}
+
+.post.upvoted button.upvote{
+  color: green;
+}
+
+.post.downvoted button.downvote {
+  color: red;
+}

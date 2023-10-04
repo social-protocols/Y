@@ -10,9 +10,8 @@ use serde::Deserialize;
 
 use anyhow::Result;
 
-
-use common::structs::{Direction};
-use common::structs::Direction::{Up, Down, Neutral};
+use common::structs::Direction;
+use common::structs::Direction::Neutral;
 
 fn default_none() -> Option<i64> {
     None
@@ -32,14 +31,13 @@ pub async fn vote(
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<VoteRequest>,
 ) -> Result<Markup, AppError> {
+
     // First, interpret the user intent based on the button pressed **and** the current state.
     let new_state = if form_data.direction == form_data.state {
         Neutral
     } else {
         form_data.direction
     };
-
-    // println!("{:?} {:?} {:?}", form_data.direction, form_data.state, new_state);
 
     let user = auth::get_or_create_user(&cookies, &pool).await?;
     db::vote(
@@ -59,25 +57,16 @@ pub async fn vote(
 }
 
 pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Markup {
-    let upvote_style_class = match state {
-        Direction::Up => "text-green-500",
-        _ => "",
-    };
-
-    let downvote_style_class = match state {
-        Direction::Down => "text-red-500",
-        _ => "",
-    };
 
     html! {
-        span  {
+        div class="vote-buttons mt-2 w-7" {
             input type="hidden" value=(post_id) name="post_id";
             input type="hidden" value=(state) name="state";
             @if let Some(note_id) = note_id {
                 input type="hidden" value=(note_id) name="note_id";
             }
             button
-                class=(format!("upvote {upvote_style_class}"))
+                class="upvote"
                 name="direction"
                 value="Up"
             {
@@ -85,12 +74,16 @@ pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Mar
             }
 
             button
-                class=(format!("downvote {downvote_style_class}"))
+                class="downvote"
                 name="direction"
                 value="Down"
             {
                 "▼"
             }
+        }
+
+        script language="javascript" {
+            (format!("setPosition({}, {});", post_id, state as i64))
         }
     }
 }

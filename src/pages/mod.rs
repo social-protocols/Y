@@ -7,3 +7,4 @@ pub mod frontpage;
 pub mod user;
 pub mod view_post;
 pub mod vote;
+pub mod positions;

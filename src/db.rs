@@ -115,15 +115,3 @@ pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post
     .await?;
     Ok(note)
 }
-
-pub async fn get_current_vote(post_id: i64, user_id: i64, pool: &SqlitePool) -> Result<Direction> {
-    let vote = sqlx::query_scalar::<_, i32>(
-        "select direction from current_vote where post_id = ? and user_id = ?",
-    )
-    .bind(post_id)
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
-
-    Direction::from(vote.unwrap_or(0))
-}
