@@ -30,7 +30,7 @@ pub async fn view_post(
         }
         None => html! { "Post not found" },
     };
-    Ok(base.title("Y").content(content).render())
+    Ok(base.title("𝕐").content(content).render())
 }
 
 
