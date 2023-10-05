@@ -44,7 +44,7 @@ with latest as (
 ) select * from latest where direction != 0;
 
 
--- current_tally counts takes the latest vote for each user, regardless of whether it is informed or not.
+-- current_tally counts counts the latest votes, regardless of whether they are informed or not.
 create view current_tally as
 select
   post_id
@@ -69,7 +69,7 @@ group by 1;
 -- ) select * from latest where direction != 0
 
 
-
+drop view if exists current_informed_tally;
 create view current_informed_tally as 
 with current_informed_votes as (
     SELECT
@@ -85,8 +85,8 @@ with current_informed_votes as (
     where note_id is not null
     GROUP BY 1,2, 3
 
-),  
-current_informed_tally as (
+)
+, informed_tally as (
   select 
     post_id
     , note_id
@@ -96,7 +96,7 @@ current_informed_tally as (
   -- The latest vote might be zero, so in that case we don't return a record for this user and post
   where direction != 0
   group by 1, 2 
-), 
+),  
 first_votes_on_notes as (
   SELECT 
         user_id
@@ -108,53 +108,61 @@ first_votes_on_notes as (
   WHERE note_id is not null
   GROUP BY 1, 2, 3
 )
+, votes_before_note as (
+    select
+      params.post_id as p_post_id
+      , params.note_id as p_note_id
+      , first_votes_on_notes.post_id as f_post_id 
+      , first_votes_on_notes.post_id as f_note_id 
+      , first_votes_on_notes.first_vote_on_this_note_rowid
+      , vote_history.rowid
+      , vote_history.*
+      , case when 
+          (first_vote_on_this_note_rowid is null or vote_history.rowid < first_vote_on_this_note_rowid)
+          -- and direction == 1
+        then true
+        else null end before_note
+    
+      , params.upvotes as upvotes_given_shown_note
+      , params.votes as votes_given_shown_note
+    FROM 
+       informed_tally params
+       join vote_history using (post_id)
+    LEFT OUTER JOIN first_votes_on_notes on (
+       first_votes_on_notes.post_id = params.post_id
+       and first_votes_on_notes.note_id = params.note_id
+       and first_votes_on_notes.user_id = vote_history.user_id
+    )
+)
+, last_votes_before_note as (
+    select
+        p_post_id as post_id
+        , p_note_id as note_id
+        , user_id
+        , direction
+        , created
+        , upvotes_given_shown_note
+        , votes_given_shown_note
+        , max(created)
+    from  votes_before_note
+    where 
+    before_note 
+    group by 1, 2, 3
+)
 select
-  params.post_id
-  , params.note_id
+  post_id
+  , note_id
   , sum(
-    case when 
-      (first_vote_on_this_note_rowid is null or vote_history.rowid < first_vote_on_this_note_rowid)
-      and direction == 1
+    case when direction == 1
     then 1 
     else 0 end 
   ) as upvotes_given_not_shown_note
-  , sum(
-    case when 
-      (first_vote_on_this_note_rowid is null or vote_history.rowid < first_vote_on_this_note_rowid)
-    then 1 
-    else 0 end 
-  ) as votes_given_not_shown_note
+  , count(*) as votes_given_not_shown_note
 
-
-  , params.upvotes as upvotes_given_shown_note
-  , params.votes as votes_given_shown_note
-
-
-  -- , sum(case when direction = 1 then 1 else 0 end) as upvotes_given_not_shown_note
-  -- , count(*) as votes_given_not_shown_note
-
--- select
---   params.post_id as p_post_id
---   , params.note_id as p_note_id
---   , first_votes_on_notes.post_id as f_post_id 
---   , first_votes_on_notes.post_id as f_note_id 
---   , first_votes_on_notes.first_vote_on_this_note_rowid
---   , vote_history.rowid
---   , vote_history.*
-
-FROM 
-   current_informed_tally params
-   join vote_history using (post_id)
-LEFT OUTER JOIN first_votes_on_notes on (
-   first_votes_on_notes.post_id = params.post_id
-   and first_votes_on_notes.note_id = params.note_id
-   and first_votes_on_notes.user_id = vote_history.user_id
-)
--- WHERE 
-  -- (first_vote_on_this_note_rowid is null or vote_history.rowid < first_vote_on_this_note_rowid)
-  -- params.post_id = 2
-group by params.post_id, params.note_id;
-
+  , upvotes_given_shown_note
+  , votes_given_shown_note
+from last_votes_before_note
+group by 1,2;
 
 
 
