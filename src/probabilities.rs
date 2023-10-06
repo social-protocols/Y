@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 use std::fmt;
 
 use crate::db;
+use std::collections::HashMap;
 
 const WEIGHT_CONSTANT: f64 = 2.3;
 
@@ -61,6 +62,23 @@ pub struct InformedTallyQueryResult {
     votes_given_not_shown_note: i64,
 }
 
+impl InformedTallyQueryResult {
+    fn informed_tally(&self) -> InformedTally {
+        InformedTally {
+            post_id: self.post_id,
+            note_id: self.note_id,
+            given_not_shown_note: Tally{
+                upvotes: self.upvotes_given_not_shown_note,
+                total: self.votes_given_not_shown_note,
+            },
+            given_shown_note: Tally{
+                upvotes: self.upvotes_given_shown_note,
+                total: self.votes_given_shown_note,
+            },
+        } 
+    }
+}
+
 #[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone)]
 pub struct InformedTally {
     pub post_id: i64,
@@ -70,6 +88,107 @@ pub struct InformedTally {
     given_shown_note: Tally,
 }
 
+
+
+pub async fn hypothetical_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<(f64, f64)> {
+
+    // first, get table which has stats for this note, all subnotes, and all subnotes
+    let query = r#"
+        WITH children AS
+        (
+          SELECT 
+            post_id
+            , note_id
+            , votes_given_shown_note
+            , upvotes_given_shown_note
+            , votes_given_not_shown_note
+            , upvotes_given_not_shown_note
+          FROM current_informed_tally p
+          WHERE post_id = 1
+
+          -- UNION ALL
+          -- -- selects all posts that are a parent of something in c
+          -- SELECT p.post_id, p.note_id, p.votes_given_not_shown_note, p.upvotes_given_not_shown_note, p.votes_given_not_shown_note, p.upvotes_given_not_shown_note
+          -- FROM children c
+          -- INNER JOIN current_informed_tally p ON p.post_id = c.note_id
+        )
+        select * from children;
+    "#;
+
+    
+
+    // execute the query and get a vector of Votes
+    let tallies: Vec<InformedTally> = sqlx::query_as::<_, InformedTallyQueryResult>(query)
+        .bind(post_id)
+        .fetch_all(pool)
+        .await?
+        .iter()
+        .map(|result| result.informed_tally())
+        .collect();
+        // .iter();
+
+    
+    let mut tallies_map: HashMap<i64, Vec<InformedTally>> = HashMap::new();
+   
+    // TODO: somebody who actually understands Rust borrow checking rewrite this to avoid unecessarily cloning
+    // the array each time we append to it. 
+    for tally in tallies.iter() {
+        let key = tally.post_id;
+        let mut v = match tallies_map.get(&key) {
+            None => Vec::new(),
+            Some(vec) => vec.clone(),
+        };
+        v.push(tally.clone());
+        tallies_map.insert(key, v);
+    };
+
+    Ok(hypothetical_p_of_a_recursive(post_id, &tallies_map))
+}
+
+pub fn hypothetical_p_of_a_recursive(post_id: i64, tallies_map: &HashMap<i64, Vec<InformedTally>>) -> (f64, f64) {
+
+    let mut top_note_hypothetical_a: f64 = 0.0;
+    let mut top_note_a_given_not_sb: f64 = 0.0; // todo: should this be the same across all notes?
+
+    let tallies = tallies_map.get(&post_id);
+
+    if tallies.is_none() {
+        println!("End recursion for {}", post_id);
+        return (1.0,1.0);
+    }
+
+    for tally in tallies.unwrap().iter() {
+        let a_given_not_sb = p_of_a_given_not_shown_b(tally.clone()).average;
+        let a_given_sb = p_of_a_given_shown_b(tally.clone()).average;
+        let delta = a_given_sb - a_given_not_sb;
+
+        let (hypothetical_b, b_given_not_sc) = hypothetical_p_of_a_recursive(tally.note_id, &tallies_map);
+        let support = hypothetical_b/b_given_not_sc;
+
+        let hypothetical_a = a_given_not_sb + delta * support;
+        if (hypothetical_a - a_given_not_sb).abs() > (top_note_hypothetical_a - top_note_a_given_not_sb).abs() {
+            top_note_hypothetical_a = hypothetical_a;
+            top_note_a_given_not_sb = a_given_not_sb; 
+        }
+    };
+
+    (top_note_hypothetical_a, top_note_a_given_not_sb)
+
+    // let top_note = db::get_top_note(post_id, pool).await?;
+
+    // Ok(match top_note {
+    //     // if there is no top note, it means there are no votes
+    //     None => global_prior(),
+    //     Some(note) => {
+    //         let tally = informed_tally(post_id, note.id, pool).await?;
+
+    //         match tally {
+    //             None => global_prior(),
+    //             Some(t) => p_of_a_given_shown_b(t),
+    //         }
+    //     },
+    // })
+}
 
 pub async fn informed_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<BetaDistribution> {
 
@@ -108,7 +227,7 @@ async fn informed_tally(
     note_id: i64,
     pool: &SqlitePool,
 ) -> Result<Option<InformedTally>> {
-    let optional_tally = sqlx::query_as::<_, InformedTallyQueryResult>(
+    let optional_result = sqlx::query_as::<_, InformedTallyQueryResult>(
         "select 
             post_id
             , note_id
@@ -127,22 +246,7 @@ async fn informed_tally(
     .fetch_optional(pool)
     .await?;
 
-
-    Ok(optional_tally.map(|tally| 
-            InformedTally{
-                post_id: tally.post_id,
-                note_id: tally.note_id,
-                given_not_shown_note: Tally{
-                    upvotes: tally.upvotes_given_not_shown_note,
-                    total: tally.votes_given_not_shown_note,
-                },
-                given_shown_note: Tally{
-                    upvotes: tally.upvotes_given_shown_note,
-                    total: tally.votes_given_shown_note,
-                },
-            }
-        
-    ))
+    Ok(optional_result.map(|result| result.informed_tally()))
 }
 
 

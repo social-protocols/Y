@@ -166,6 +166,41 @@ group by 1,2;
 
 
 
+drop view if exists probabilities_given_note;
+create view probabilities_given_note as
+with parameters as (
+    select 
+        .85 as prior 
+        , 2 as priorWeight
+
+)
+, given_not_shown_note as (
+    select 
+        *
+        , (cast(upvotes_given_not_shown_note + prior*priorWeight as float)) / (cast(votes_given_not_shown_note + priorWeight as float)) as p_given_not_shown_note
+    from current_informed_tally join parameters
+)
+, given_shown_note as (
+    select 
+        post_id
+        , note_id 
+        , upvotes_given_not_shown_note 
+        , votes_given_not_shown_note 
+        , p_given_not_shown_note 
+        , upvotes_given_shown_note 
+        , votes_given_shown_note  
+        , ( upvotes_given_shown_note + p_given_not_shown_note * priorWeight) / (cast(votes_given_shown_note + priorWeight as float)) as p_given_shown_note
+    from given_not_shown_note
+)
+select 
+    * 
+    -- , max("p(A=1|vA,sB)")
+    from given_shown_note
+    -- group by post_id
+;
+
+
+
 -- drop view if exists current_informed_tally;
 -- create view current_informed_tally as
 -- with current_informed_votes as (
