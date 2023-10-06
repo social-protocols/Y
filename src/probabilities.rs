@@ -56,10 +56,10 @@ impl fmt::Display for BetaDistribution {
 pub struct InformedTallyQueryResult {
     pub post_id: i64,
     pub note_id: i64,
-    upvotes_given_shown_note: i64,
-    votes_given_shown_note: i64,
-    upvotes_given_not_shown_note: i64,
-    votes_given_not_shown_note: i64,
+    upvotes_given_shown_this_note: i64,
+    votes_given_shown_this_note: i64,
+    upvotes_given_not_shown_this_note: i64,
+    votes_given_not_shown_this_note: i64,
 }
 
 impl InformedTallyQueryResult {
@@ -67,13 +67,13 @@ impl InformedTallyQueryResult {
         InformedTally {
             post_id: self.post_id,
             note_id: self.note_id,
-            given_not_shown_note: Tally{
-                upvotes: self.upvotes_given_not_shown_note,
-                total: self.votes_given_not_shown_note,
+            given_not_shown_this_note: Tally{
+                upvotes: self.upvotes_given_not_shown_this_note,
+                total: self.votes_given_not_shown_this_note,
             },
             given_shown_note: Tally{
-                upvotes: self.upvotes_given_shown_note,
-                total: self.votes_given_shown_note,
+                upvotes: self.upvotes_given_shown_this_note,
+                total: self.votes_given_shown_this_note,
             },
         } 
     }
@@ -84,13 +84,13 @@ pub struct InformedTally {
     pub post_id: i64,
     pub note_id: i64,
     
-    given_not_shown_note: Tally,
+    given_not_shown_this_note: Tally,
     given_shown_note: Tally,
 }
 
 
 
-pub async fn hypothetical_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<(f64, f64)> {
+pub async fn find_nop_note(post_id: i64, pool: &SqlitePool) -> Result<(i64, f64, f64)> {
 
     // first, get table which has stats for this note, all subnotes, and all subnotes
     let query = r#"
@@ -99,25 +99,29 @@ pub async fn hypothetical_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<(f64
           SELECT 
             post_id
             , note_id
-            , votes_given_shown_note
-            , upvotes_given_shown_note
-            , votes_given_not_shown_note
-            , upvotes_given_not_shown_note
+            , votes_given_shown_this_note
+            , upvotes_given_shown_this_note
+            , votes_given_not_shown_this_note
+            , upvotes_given_not_shown_this_note
           FROM current_informed_tally p
-          WHERE post_id = 1
-
-          -- UNION ALL
-          -- -- selects all posts that are a parent of something in c
-          -- SELECT p.post_id, p.note_id, p.votes_given_not_shown_note, p.upvotes_given_not_shown_note, p.votes_given_not_shown_note, p.upvotes_given_not_shown_note
-          -- FROM children c
-          -- INNER JOIN current_informed_tally p ON p.post_id = c.note_id
+          WHERE post_id = ?
+          UNION ALL
+          SELECT 
+            p.post_id
+            , p.note_id
+            , p.votes_given_not_shown_this_note
+            , p.upvotes_given_not_shown_this_note
+            , p.votes_given_not_shown_this_note
+            , p.upvotes_given_not_shown_this_note
+          FROM children c
+          INNER JOIN current_informed_tally p ON p.post_id = c.note_id
         )
         select * from children;
     "#;
 
     
 
-    // execute the query and get a vector of Votes
+    // execute the query and get a vector of InformedTally
     let tallies: Vec<InformedTally> = sqlx::query_as::<_, InformedTallyQueryResult>(query)
         .bind(post_id)
         .fetch_all(pool)
@@ -142,13 +146,10 @@ pub async fn hypothetical_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<(f64
         tallies_map.insert(key, v);
     };
 
-    Ok(hypothetical_p_of_a_recursive(post_id, &tallies_map))
+    Ok(find_top_note_given_informed_tallies(post_id, &tallies_map))
 }
 
-pub fn hypothetical_p_of_a_recursive(post_id: i64, tallies_map: &HashMap<i64, Vec<InformedTally>>) -> (f64, f64) {
-
-    let mut top_note_hypothetical_a: f64 = 0.0;
-    let mut top_note_a_given_not_sb: f64 = 0.0; // todo: should this be the same across all notes?
+fn find_top_note_given_informed_tallies(post_id: i64, tallies_map: &HashMap<i64, Vec<InformedTally>>) -> (i64, f64, f64) {
 
     let tallies = tallies_map.get(&post_id);
 
@@ -157,22 +158,28 @@ pub fn hypothetical_p_of_a_recursive(post_id: i64, tallies_map: &HashMap<i64, Ve
         return (1.0,1.0);
     }
 
+    let mut p_of_a_given_shown_top_note: f64 = 0.0; 
+    let mut p_of_a_given_not_shown_top_note: f64 = 0.0; // todo: should this be the same across all notes?
+    let mut top_note_id: i64 = 0
+
     for tally in tallies.unwrap().iter() {
-        let a_given_not_sb = p_of_a_given_not_shown_b(tally.clone()).average;
-        let a_given_sb = p_of_a_given_shown_b(tally.clone()).average;
-        let delta = a_given_sb - a_given_not_sb;
+        let p_of_a_given_not_shown_this_note = p_of_a_given_not_shown_b(tally.clone()).average;
+        let p_of_a_given_shown_this_note = p_of_a_given_shown_b(tally.clone()).average;
+        let delta = p_of_a_given_shown_this_note - p_of_a_given_not_shown_this_note;
 
-        let (hypothetical_b, b_given_not_sc) = hypothetical_p_of_a_recursive(tally.note_id, &tallies_map);
-        let support = hypothetical_b/b_given_not_sc;
+        let (subnote_id, p_of_b_given_shown_top_subnote, p_of_b_given_not_shown_top_subnote) = find_top_note_given_informed_tallies(tally.note_id, &tallies_map);
 
-        let hypothetical_a = a_given_not_sb + delta * support;
-        if (hypothetical_a - a_given_not_sb).abs() > (top_note_hypothetical_a - top_note_a_given_not_sb).abs() {
-            top_note_hypothetical_a = hypothetical_a;
-            top_note_a_given_not_sb = a_given_not_sb; 
+        let a = p_of_a_given_not_shown_this_note 
+            + delta * p_of_b_given_shown_top_subnote/p_of_b_given_not_shown_top_subnote;
+
+        if (a - p_of_a_given_not_shown_this_note).abs() > (p_of_a_given_shown_top_note - p_of_a_given_not_shown_top_note).abs() {
+            p_of_a_given_shown_top_note = a;
+            p_of_a_given_not_shown_top_note = p_of_a_given_not_shown_this_note; 
+            top_note_id = tally.note_id
         }
     };
 
-    (top_note_hypothetical_a, top_note_a_given_not_sb)
+    (top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note)
 
     // let top_note = db::get_top_note(post_id, pool).await?;
 
@@ -213,7 +220,7 @@ pub async fn informed_p_of_a(post_id: i64, pool: &SqlitePool) -> Result<BetaDist
 // this is the belief in A of users who have not been exposed to B
 // so we must exclude votes given B, but not votes given other notes
 fn p_of_a_given_not_shown_b(tally: InformedTally) -> BetaDistribution {
-    global_prior().bayesian_average(tally.given_not_shown_note)
+    global_prior().bayesian_average(tally.given_not_shown_this_note)
 }
 
 fn p_of_a_given_shown_b(tally: InformedTally) -> BetaDistribution {
@@ -231,10 +238,10 @@ async fn informed_tally(
         "select 
             post_id
             , note_id
-              , upvotes_given_shown_note
-              , votes_given_shown_note
-              , upvotes_given_not_shown_note
-              , votes_given_not_shown_note
+              , upvotes_given_shown_this_note
+              , votes_given_shown_this_note
+              , upvotes_given_not_shown_this_note
+              , votes_given_not_shown_this_note
               -- , upvotes_given_upvoted_note
               -- , votes_given_upvoted_note
               -- , upvotes_given_downvoted_note

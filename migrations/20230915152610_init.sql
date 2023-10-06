@@ -123,8 +123,8 @@ first_votes_on_notes as (
         then true
         else null end before_note
     
-      , params.upvotes as upvotes_given_shown_note
-      , params.votes as votes_given_shown_note
+      , params.upvotes as upvotes_given_shown_this_note
+      , params.votes as votes_given_shown_this_note
     FROM 
        informed_tally params
        join vote_history using (post_id)
@@ -141,8 +141,8 @@ first_votes_on_notes as (
         , user_id
         , direction
         , created
-        , upvotes_given_shown_note
-        , votes_given_shown_note
+        , upvotes_given_shown_this_note
+        , votes_given_shown_this_note
         , max(created)
     from  votes_before_note
     where 
@@ -156,11 +156,11 @@ select
     case when direction == 1
     then 1 
     else 0 end 
-  ) as upvotes_given_not_shown_note
-  , count(*) as votes_given_not_shown_note
+  ) as upvotes_given_not_shown_this_note
+  , count(*) as votes_given_not_shown_this_note
 
-  , upvotes_given_shown_note
-  , votes_given_shown_note
+  , upvotes_given_shown_this_note
+  , votes_given_shown_this_note
 from last_votes_before_note
 group by 1,2;
 
@@ -174,28 +174,28 @@ with parameters as (
         , 2 as priorWeight
 
 )
-, given_not_shown_note as (
+, given_not_shown_this_note as (
     select 
         *
-        , (cast(upvotes_given_not_shown_note + prior*priorWeight as float)) / (cast(votes_given_not_shown_note + priorWeight as float)) as p_given_not_shown_note
+        , (cast(upvotes_given_not_shown_this_note + prior*priorWeight as float)) / (cast(votes_given_not_shown_this_note + priorWeight as float)) as p_given_not_shown_this_note
     from current_informed_tally join parameters
 )
-, given_shown_note as (
+, given_shown_this_note as (
     select 
         post_id
         , note_id 
-        , upvotes_given_not_shown_note 
-        , votes_given_not_shown_note 
-        , p_given_not_shown_note 
-        , upvotes_given_shown_note 
-        , votes_given_shown_note  
-        , ( upvotes_given_shown_note + p_given_not_shown_note * priorWeight) / (cast(votes_given_shown_note + priorWeight as float)) as p_given_shown_note
-    from given_not_shown_note
+        , upvotes_given_not_shown_this_note 
+        , votes_given_not_shown_this_note 
+        , p_given_not_shown_this_note 
+        , upvotes_given_shown_this_note 
+        , votes_given_shown_this_note  
+        , ( upvotes_given_shown_this_note + p_given_not_shown_this_note * priorWeight) / (cast(votes_given_shown_this_note + priorWeight as float)) as p_given_shown_this_note
+    from given_not_shown_this_note
 )
 select 
     * 
     -- , max("p(A=1|vA,sB)")
-    from given_shown_note
+    from given_shown_this_note
     -- group by post_id
 ;
 
