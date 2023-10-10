@@ -30,13 +30,11 @@ async fn main() -> Result<()> {
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
 
-    let p = crate::probabilities::informed_p_of_a(1, &sqlite_pool).await?;
-    println!("P is {}",p);
-   
+    let p = crate::probabilities::informed_upvote_rate(1, &sqlite_pool).await?;
+    println!("P is {}", p);
+
     let (hp, _) = crate::probabilities::hypothetical_p_of_a(1, &sqlite_pool).await?;
-    println!("Hypothetical P is {}",hp);
-
-
+    println!("Hypothetical P is {}", hp);
 
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {
