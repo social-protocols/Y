@@ -6,7 +6,7 @@ The formula is:
 
 - for new impressions without note: s * q * lg(q/0.5)
 - for new impressions with note: r * p * lg(p/0.5) + t
-- for remedial impressions with note: s * ( p*lg(p/q) + (1-p)*lg((1-p)/(1-q)) ) + t
+- for remedial impressions with note: s * Dkl(p || q) + t
 
 where:
 
@@ -15,6 +15,8 @@ where:
 - r is the expected informed vote rate: expected votes/attention, when shown this note (if any)
 - s is the expected uninformed vote rate: expected votes/attention, when not shown any note
 - t is the information rate of note (calculated recursively)
+- Dkl is KL divergence, or relative entropy: 
+	- Dkl(p || q) = p*lg(p/q) + (1-p)*lg((1-p)/(1-q))
 
 ## Notes
 
@@ -26,8 +28,7 @@ where:
 	- p and q are approximately equal to historical upvotes/(upvotes + downvotes)
 	- r and s are approximately equal to historical (upvotes + downvotes) / attention
 
-- Thus for new votes informationRate ≈ upvotes/attention * (log(upvotes / (upvotes + downvotes)) + 1) 
-
+- Thus for new impressions, informationRate ≈ upvotes/attention * (log(upvotes / (upvotes + downvotes)) + 1) 
 
 ## Examples
 
@@ -40,7 +41,7 @@ Suppose:
 Then:
 - q = Bayesian average global prior of 85% and 900/1000 ≈ .9
 - expected uninformed vote rate s = 1000/5000 = 2 votes / attentionUnit
-- expected informationRate = s*q*lg(q/0.5) = 2 * .9 * lg(.9/0.5) = 1.526 bits / attentionUnit
+- expected informationRate = s * q * lg(q/0.5) = 2 * .9 * lg(.9/0.5) = 1.526 bits / attentionUnit
 
 
 ### Example 2: Post with negative information gain rate after note
