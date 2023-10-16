@@ -1,6 +1,3 @@
-// use crate::structs::Direction;
-// use crate::structs::Direction::Down;
-// use crate::structs::Direction::Up;
 use anyhow::Result;
 use sqlx::SqlitePool;
 use std::fmt;
@@ -44,20 +41,20 @@ impl BetaDistribution {
 
     fn update(self, tally: Tally) -> Self {
         Self {
-            average: bayesian_average(self.average, WEIGHT_CONSTANT, tally),
-            weight: WEIGHT_CONSTANT + tally.total as f64,
+            average: bayesian_average(self.average, self.weight, tally),
+            weight: self.weight + tally.total as f64,
         }
     }
-}
-
-fn bayesian_average(prior_average: f64, weight: f64, tally: Tally) -> f64 {
-    (prior_average * weight + tally.upvotes as f64) / (weight + tally.total as f64)
 }
 
 impl fmt::Display for BetaDistribution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {})", self.average, self.weight)
     }
+}
+
+fn bayesian_average(prior_average: f64, weight: f64, tally: Tally) -> f64 {
+    (prior_average * weight + tally.upvotes as f64) / (weight + tally.total as f64)
 }
 
 #[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone)]
@@ -228,7 +225,7 @@ async fn informed_tally(
 ) -> Result<Option<InformedTally>> {
     let optional_result = sqlx::query_as::<_, InformedTallyQueryResult>(
         "SELECT
-            post_id
+              post_id
             , note_id
             , upvotes_given_shown_this_note
             , votes_given_shown_this_note
