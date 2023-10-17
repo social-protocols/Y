@@ -13,16 +13,26 @@ fn global_prior() -> BetaDistribution {
     }
 }
 
-// const EMPTY_TALLY: Tally = Tally {
-//     upvotes: 0,
-//     total: 0,
-// };
 
 #[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone, Copy)]
 pub struct Tally {
     pub upvotes: i64,
     pub total: i64,
 }
+
+
+
+impl fmt::Display for Tally {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tally({}/{})", self.upvotes, self.total)
+    }
+}
+
+const EMPTY_TALLY: Tally = Tally {
+    upvotes: 0,
+    total: 0,
+};
+
 
 #[derive(Debug, Clone)]
 pub struct BetaDistribution {
@@ -64,6 +74,8 @@ pub struct InformedTallyQueryResult {
     votes_given_shown_this_note: i64,
     upvotes_given_not_shown_this_note: i64,
     votes_given_not_shown_this_note: i64,
+    upvotes_for_note: i64,
+    votes_for_note: i64,
 }
 
 impl InformedTallyQueryResult {
@@ -79,6 +91,10 @@ impl InformedTallyQueryResult {
                 upvotes: self.upvotes_given_shown_this_note,
                 total: self.votes_given_shown_this_note,
             },
+            for_note: Tally {
+                upvotes: self.upvotes_for_note,
+                total: self.votes_for_note,
+            }
         }
     }
 }
@@ -90,6 +106,7 @@ pub struct InformedTally {
 
     given_not_shown_this_note: Tally,
     given_shown_this_note: Tally,
+    for_note: Tally,
 }
 
 pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i64, f64, f64)>> {
@@ -117,7 +134,11 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i6
           FROM children c
           INNER JOIN current_informed_tally p ON p.post_id = c.note_id
         )
-        SELECT * FROM children;
+        SELECT 
+          children.*
+          , current_tally.votes as votes_for_note 
+          , current_tally.upvotes as upvotes_for_note
+        FROM children join current_tally on (current_tally.post_id = children.note_id);
     "#;
 
     // execute the query and get a vector of InformedTally
@@ -129,21 +150,23 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i6
         .map(|result| result.informed_tally())
         .collect();
 
-    let mut tallies_map: HashMap<i64, Vec<InformedTally>> = HashMap::new();
+    let mut subnote_tallies: HashMap<i64, Vec<InformedTally>> = HashMap::new();
 
     // TODO: somebody who actually understands Rust borrow checking rewrite this to avoid unecessarily cloning
     // the array each time we append to it.
     for tally in tallies.iter() {
         let key = tally.post_id;
-        let mut value = match tallies_map.get(&key) {
+        let mut value = match subnote_tallies.get(&key) {
             None => Vec::new(),
             Some(vec) => vec.clone(),
         };
         value.push(tally.clone());
-        tallies_map.insert(key, value);
+        subnote_tallies.insert(key, value);
     }
 
-    let (note_id, p, q) = find_top_note_given_informed_tallies(post_id, &tallies_map);
+    let t = current_tally(post_id, pool).await?;
+
+    let (note_id, p, q) = find_top_note_given_tallies(post_id, t, &subnote_tallies);
 
     Ok(if note_id == 0 {
         None
@@ -157,24 +180,35 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i6
 /// and function names).
 /// The function recurses through the tree of a conversation started by the post `post_id`,
 /// always looking at post/note combinations.
-fn find_top_note_given_informed_tallies(
+fn find_top_note_given_tallies(
     post_id: i64,
-    tallies_map: &HashMap<i64, Vec<InformedTally>>,
+    post_tally: Tally,
+    subnote_tallies: &HashMap<i64, Vec<InformedTally>>,
 ) -> (i64, f64, f64) {
-    let tallies = tallies_map.get(&post_id);
 
+    let mut p_of_a_given_not_shown_top_note = global_prior()
+        .update(post_tally)
+        .average;
+
+    println!("p_of_a_given_not_shown_top_note for post {} = {}", post_id, p_of_a_given_not_shown_top_note);
+
+
+    let mut p_of_a_given_shown_top_note = p_of_a_given_not_shown_top_note;
+
+    let mut top_note_id: i64 = 0;
+
+    let tallies = subnote_tallies.get(&post_id);
     if tallies.is_none() {
-        println!("End recursion for {}", post_id);
-        return (post_id, 1.0, 1.0);
+        println!("top note for post {} is note {} with p={} and q={}", post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
+        // Bit of a hack. Should just get overall tally
+        return (top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
     }
 
-    let mut p_of_a_given_shown_top_note: f64 = 0.0;
-    let mut p_of_a_given_not_shown_top_note: f64 = 0.0; // todo: should this be the same across all notes?
-    let mut top_note_id: i64 = 0;
 
     for tally in tallies.unwrap().iter() {
         let (_, p_of_b_given_shown_top_subnote, p_of_b_given_not_shown_top_subnote) =
-            find_top_note_given_informed_tallies(tally.note_id, &tallies_map);
+            find_top_note_given_tallies(tally.note_id, tally.for_note, &subnote_tallies);
+        let support = p_of_b_given_shown_top_subnote / p_of_b_given_not_shown_top_subnote;
 
         let p_of_a_given_not_shown_this_note = global_prior()
             .update(tally.given_not_shown_this_note)
@@ -185,21 +219,45 @@ fn find_top_note_given_informed_tallies(
             .average;
         let delta = p_of_a_given_shown_this_note - p_of_a_given_not_shown_this_note;
 
-        let a = p_of_a_given_not_shown_this_note
-            + delta * p_of_b_given_shown_top_subnote / p_of_b_given_not_shown_top_subnote;
+        let p_of_a_given_shown_this_note_and_top_subnote = p_of_a_given_not_shown_this_note
+            + delta * support;
 
-        if (a - p_of_a_given_not_shown_this_note).abs()
+        println!("\tFor post {} and note {}, p_of_a_given_shown_this_note={}, p_of_a_given_not_shown_this_note={}, delta={}, support={}", post_id, tally.note_id, p_of_a_given_shown_this_note, p_of_a_given_not_shown_this_note, delta, support);
+
+        if (p_of_a_given_shown_this_note_and_top_subnote - p_of_a_given_not_shown_this_note).abs()
             > (p_of_a_given_shown_top_note - p_of_a_given_not_shown_top_note).abs()
         {
-            p_of_a_given_shown_top_note = a;
+            p_of_a_given_shown_top_note = p_of_a_given_shown_this_note_and_top_subnote;
             p_of_a_given_not_shown_top_note = p_of_a_given_not_shown_this_note;
-            top_note_id = tally.note_id
+            top_note_id = tally.note_id;
         }
     }
+
+    println!("top note for post {} is note {} with p={} and q={}", post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
 
     (
         top_note_id,
         p_of_a_given_shown_top_note,
         p_of_a_given_not_shown_top_note,
     )
+}
+
+
+async fn current_tally(
+    post_id: i64,
+    pool: &SqlitePool,
+) -> Result<Tally> {
+    // first, get table which has stats for this note, all subnotes, and all subnotes
+    let query = r#"
+        select upvotes, votes as total from current_tally where post_id = ? 
+    "#;
+
+    // execute the query and get a vector of InformedTally
+    let tally: Option<Tally> = sqlx::query_as::<_, Tally>(query)
+        .bind(post_id)
+        .fetch_optional(pool)
+        .await?; 
+
+    Ok(tally.unwrap_or(EMPTY_TALLY))
+
 }
