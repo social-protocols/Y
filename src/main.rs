@@ -8,6 +8,9 @@ mod pages;
 mod http_server;
 mod http_static;
 
+mod probabilities;
+// mod structs;
+
 mod util;
 
 use clap::Parser;
@@ -26,6 +29,11 @@ async fn main() -> Result<()> {
 
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
+
+    match crate::probabilities::find_top_note(1, &sqlite_pool).await? {
+        None => println!("No top note"),
+        Some((note_id, p, q)) => println!("Top note for post {} is {}. p={}, q={}", 1, note_id, p, q),
+    };
 
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {

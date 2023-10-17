@@ -44,7 +44,7 @@ with latest as (
 ) select * from latest where direction != 0;
 
 
--- current_tally counts takes the latest vote for each user, regardless of whether it is informed or not.
+-- current_tally counts counts the latest votes, regardless of whether they are informed or not.
 create view current_tally as
 select
   post_id
@@ -69,44 +69,189 @@ group by 1;
 -- ) select * from latest where direction != 0
 
 
-
-
-drop view if exists informed_tally;
-create view informed_tally as
-with informed_votes as (
+drop view if exists current_informed_tally;
+create view current_informed_tally as 
+with current_informed_votes as (
     SELECT
       user_id
       , post_id
       , note_id
+
+      -- NOTE: direction will be the value of direction pulled from the same row that has max(created)
+      -- https://www.sqlite.org/lang_select.html#bareagg
       , direction
       , max(created) AS created
     FROM vote_history
-    WHERE direction != 0
-    and note_id is not null
-    GROUP BY 1,2,3
+    where note_id is not null
+    GROUP BY 1,2, 3
+
+)
+, informed_tally as (
+  select 
+    post_id
+    , note_id
+    , sum(case when direction = 1 then 1 else 0 end) as upvotes
+    , count(*) as votes
+  from current_informed_votes
+  -- The latest vote might be zero, so in that case we don't return a record for this user and post
+  where direction != 0
+  group by 1, 2 
+),  
+first_votes_on_notes as (
+  SELECT 
+        user_id
+        , post_id
+        , note_id
+        -- , direction
+        , min(rowid) first_vote_on_this_note_rowid
+  FROM vote_history
+  WHERE note_id is not null
+  GROUP BY 1, 2, 3
+)
+, votes_before_note as (
+    select
+      params.post_id as p_post_id
+      , params.note_id as p_note_id
+      , first_votes_on_notes.post_id as f_post_id 
+      , first_votes_on_notes.post_id as f_note_id 
+      , first_votes_on_notes.first_vote_on_this_note_rowid
+      , vote_history.rowid
+      , vote_history.*
+      , case when 
+          (first_vote_on_this_note_rowid is null or vote_history.rowid < first_vote_on_this_note_rowid)
+          -- and direction == 1
+        then true
+        else null end before_note
+    
+      , params.upvotes as upvotes_given_shown_this_note
+      , params.votes as votes_given_shown_this_note
+    FROM 
+       informed_tally params
+       join vote_history using (post_id)
+    LEFT OUTER JOIN first_votes_on_notes on (
+       first_votes_on_notes.post_id = params.post_id
+       and first_votes_on_notes.note_id = params.note_id
+       and first_votes_on_notes.user_id = vote_history.user_id
+    )
+)
+, last_votes_before_note as (
+    select
+        p_post_id as post_id
+        , p_note_id as note_id
+        , user_id
+        , direction
+        , created
+        , upvotes_given_shown_this_note
+        , votes_given_shown_this_note
+        , max(created)
+    from  votes_before_note
+    where 
+    before_note 
+    group by 1, 2, 3
 )
 select
-  A.post_id
-  , A.note_id
+  post_id
+  , note_id
+  , sum(
+    case when direction == 1
+    then 1 
+    else 0 end 
+  ) as upvotes_given_not_shown_this_note
+  , count(*) as votes_given_not_shown_this_note
 
-  , count(*)                                            as votes_given_seen_note
-
-  , sum(case when A.direction = 1 then 1 else 0 end) as upvotes_given_seen_note
-
-  , sum(case when A.direction = 1 
-              and B.direction = 1 then 1 else 0 end) as upvotes_given_upvoted_note
-
-  , sum(case when B.direction = 1 then 1 else 0 end) as votes_given_upvoted_note
-
-  , sum(case when A.direction = 1 
-              and B.direction = -1 then 1 else 0 end) as upvotes_given_downvoted_note
-
-  , sum(case when B.direction = -1 then 1 else 0 end) as votes_given_downvoted_note
-from 
-    informed_votes A
-    left join current_vote B
-    on (A.note_id = B.post_id and A.user_id = B.user_id)
+  , upvotes_given_shown_this_note
+  , votes_given_shown_this_note
+from last_votes_before_note
 group by 1,2;
+
+
+
+drop view if exists probabilities_given_note;
+create view probabilities_given_note as
+with parameters as (
+    select 
+        .85 as prior 
+        , 2 as priorWeight
+
+)
+, given_not_shown_this_note as (
+    select 
+        *
+        , (cast(upvotes_given_not_shown_this_note + prior*priorWeight as float)) / (cast(votes_given_not_shown_this_note + priorWeight as float)) as p_given_not_shown_this_note
+    from current_informed_tally join parameters
+)
+, given_shown_this_note as (
+    select 
+        post_id
+        , note_id 
+        , upvotes_given_not_shown_this_note 
+        , votes_given_not_shown_this_note 
+        , p_given_not_shown_this_note 
+        , upvotes_given_shown_this_note 
+        , votes_given_shown_this_note  
+        , ( upvotes_given_shown_this_note + p_given_not_shown_this_note * priorWeight) / (cast(votes_given_shown_this_note + priorWeight as float)) as p_given_shown_this_note
+    from given_not_shown_this_note
+)
+select 
+    * 
+    -- , max("p(A=1|vA,sB)")
+    from given_shown_this_note
+    -- group by post_id
+;
+
+
+
+-- drop view if exists current_informed_tally;
+-- create view current_informed_tally as
+-- with current_informed_votes as (
+--     SELECT
+--       user_id
+--       , post_id
+--       , note_id
+--       -- TODO: Check whether this is reliable behavior. From what I can tell, direction will be the direction from teh record
+--       -- corresponding to max(created), that it, it will be the value of the user's latest vote
+--       , direction
+--       , max(created) AS created
+--     FROM vote_history
+--     where note_id is not null
+--     GROUP BY 1,2, 3
+
+-- -- The latest vote might be zero, so in that case we don't return a record for this user and post
+-- ),  
+-- current_informed_tally as (
+--   select * from current_informed_votes where direction != 0
+-- )
+
+
+
+
+
+-- select
+--   A.post_id
+--   , A.note_id
+
+--   , count(*)                                            as votes_given_seen_note
+
+--   , sum(case when A.direction = 1 then 1 else 0 end) as upvotes_given_seen_note
+
+-- -----
+
+--   , sum(case when A.direction = 1 
+--               and B.direction = 1 then 1 else 0 end) as upvotes_given_upvoted_note
+
+--   , sum(case when B.direction = 1 then 1 else 0 end) as votes_given_upvoted_note
+
+--   , sum(case when A.direction = 1 
+--               and B.direction = -1 then 1 else 0 end) as upvotes_given_downvoted_note
+
+--   , sum(case when B.direction = -1 then 1 else 0 end) as votes_given_downvoted_note
+-- from 
+--     informed_votes A
+--     left join current_vote B
+--     on (A.note_id = B.post_id and A.user_id = B.user_id)
+-- group by 1,2;
+
+
 
 
 
@@ -132,8 +277,17 @@ insert into posts(id, content, parent_id, question_id) values (7, "The tweet’s
 
 insert into users(id, secret) values (100, "secret100");
 insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, null, 1);
-insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1);
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 2, 3, 1);  --agreed with 2 (shown 3)
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); --changed mind after seeing 2
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, 1);  --changed mind back (for no reason)
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); --changed mind again (for no reason)
+
+
 
 insert into users(id, secret) values (101, "secret101");
 insert into vote_history(user_id, post_id, note_id, direction) values (101, 1, 2, -1);
+
+insert into vote_history(user_id, post_id, note_id, direction) values (101, 1, 3, -1);
+insert into vote_history(user_id, post_id, note_id, direction) values (101, 1, 3, 1);
+
 
