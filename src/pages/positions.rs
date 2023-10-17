@@ -10,7 +10,7 @@ use serde::{Deserialize};
 use serde_json;
 
 use anyhow::Result;
-use common::auth::user_from_cookies;
+use common::auth::get_or_create_user;
 
 use common::structs::{User};
 
@@ -26,16 +26,11 @@ pub async fn positions(
     Form(form_data): Form<PositionsRequest>,
 ) -> Result<Markup, AppError> {
 
-    let user: Option<User> = user_from_cookies(&cookies, &pool).await?;
+    let user = get_or_create_user(&cookies, &pool).await?;
 
-    if user.is_none() {
-        return Ok(html!{""});
-    }
-
-    let user_id = user.unwrap().id;
+    let user_id = user.id;
 
     let positions: Vec<(i64, i64)> = if form_data.post_id == 0 {
-        println!("Here we are in positions. Getting positions for front page.");
         get_positions_for_frontpage(user_id, &pool).await?
     } else {
         get_positions_for_post(form_data.post_id, user_id, &pool).await?
