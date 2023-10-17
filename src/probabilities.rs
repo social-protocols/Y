@@ -58,7 +58,7 @@ impl BetaDistribution {
 
 impl fmt::Display for BetaDistribution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}, {})", self.average, self.weight)
+        write!(f, "Beta({}, {})", self.average, self.weight)
     }
 }
 

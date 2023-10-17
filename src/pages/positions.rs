@@ -12,8 +12,6 @@ use serde_json;
 use anyhow::Result;
 use common::auth::get_or_create_user;
 
-use common::structs::{User};
-
 
 #[derive(Deserialize)]
 pub struct PositionsRequest {
