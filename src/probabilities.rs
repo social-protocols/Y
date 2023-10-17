@@ -14,12 +14,12 @@ fn global_prior() -> BetaDistribution {
     }
 }
 
-const EMPTY_TALLY: Tally = Tally {
-    upvotes: 0,
-    total: 0,
-};
+// const EMPTY_TALLY: Tally = Tally {
+//     upvotes: 0,
+//     total: 0,
+// };
 
-#[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone)]
+#[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone, Copy)]
 pub struct Tally {
     pub upvotes: i64,
     pub total: i64,
@@ -168,7 +168,7 @@ fn find_top_note_given_informed_tallies(
     let mut top_note_id: i64 = 0;
 
     for tally in tallies.unwrap().iter() {
-        let (top_subnote_id, p_of_b_given_shown_top_subnote, p_of_b_given_not_shown_top_subnote) =
+        let (_, p_of_b_given_shown_top_subnote, p_of_b_given_not_shown_top_subnote) =
             find_top_note_given_informed_tallies(tally.note_id, &tallies_map);
 
         let p_of_a_given_not_shown_this_note = global_prior()
