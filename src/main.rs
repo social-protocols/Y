@@ -33,9 +33,6 @@ async fn main() -> Result<()> {
     let p = crate::probabilities::informed_upvote_rate(1, &sqlite_pool).await?;
     println!("P is {}", p);
 
-    let (hp, _) = crate::probabilities::hypothetical_p_of_a(1, &sqlite_pool).await?;
-    println!("Hypothetical P is {}", hp);
-
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {
             res.context("http server crashed").unwrap();
