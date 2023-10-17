@@ -30,8 +30,10 @@ async fn main() -> Result<()> {
     let command_line_args = CommandLineArgs::parse();
     let sqlite_pool = setup_database(&command_line_args.database).await;
 
-    let p = crate::probabilities::informed_upvote_rate(1, &sqlite_pool).await?;
-    println!("P is {}", p);
+    match crate::probabilities::find_top_note(1, &sqlite_pool).await? {
+        None => println!("No top note"),
+        Some((note_id, p, q)) => println!("Top note for post {} is {}. p={}, q={}", 1, note_id, p, q),
+    };
 
     tokio::select! {
         res = start_http_server(sqlite_pool.clone()) => {

@@ -2,7 +2,6 @@ use anyhow::Result;
 use sqlx::SqlitePool;
 use std::fmt;
 
-use crate::db;
 use std::collections::HashMap;
 
 const WEIGHT_CONSTANT: f64 = 2.3;
@@ -93,7 +92,7 @@ pub struct InformedTally {
     given_shown_this_note: Tally,
 }
 
-pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<(i64, f64, f64)> {
+pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i64, f64, f64)>> {
     // first, get table which has stats for this note, all subnotes, and all subnotes
     let query = r#"
         WITH children AS
@@ -144,7 +143,13 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<(i64, f64,
         tallies_map.insert(key, value);
     }
 
-    Ok(find_top_note_given_informed_tallies(post_id, &tallies_map))
+    let (note_id, p, q) = find_top_note_given_informed_tallies(post_id, &tallies_map);
+
+    Ok(if note_id == 0 {
+        None
+    } else {
+        Some((note_id, p, q))
+    })
 }
 
 /// In the context of this function, we always have two posts in scope: A post along with a
