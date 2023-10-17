@@ -277,10 +277,10 @@ insert into posts(id, content, parent_id, question_id) values (7, "The tweet’s
 
 insert into users(id, secret) values (100, "secret100");
 insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, null, 1);
-insert into vote_history(user_id, post_id, note_id, direction) values (100, 2, 3, 1);  // agreed with 2 (shown 3)
-insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); // changed mind after seeing 2
-insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, 1); // changed mind back (for no reason)
-insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); // changed mind again (for no reason)
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 2, 3, 1);  --agreed with 2 (shown 3)
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); --changed mind after seeing 2
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, 1);  --changed mind back (for no reason)
+insert into vote_history(user_id, post_id, note_id, direction) values (100, 1, 2, -1); --changed mind again (for no reason)
 
 
 
