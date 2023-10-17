@@ -1,6 +1,11 @@
 
+
+.post {
+  border-right: solid transparent 4px;
+}
+
 .post.voted {
-  border-right: solid black 4px;
+  border-color: black
 }
 
 .post.upvoted {
