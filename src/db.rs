@@ -1,13 +1,16 @@
 use common::structs::{Direction, Post};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 use sqlx::SqlitePool;
 
-
 pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(
-        "INSERT INTO posts (content, parent_id) VALUES (?, ?) RETURNING id",
+        r#"
+            insert into posts (content, parent_id)
+            values (?, ?)
+            returning id
+        "#,
     )
     .bind(content)
     .bind(parent_id)
@@ -17,10 +20,19 @@ pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePoo
 }
 
 pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
-    let post = sqlx::query_as::<_, Post>("select id, content, parent_id from posts where id = ?")
-        .bind(post_id)
-        .fetch_optional(pool)
-        .await?;
+    let post = sqlx::query_as::<_, Post>(
+        r#"
+            select
+                id
+                , content
+                , parent_id
+            from posts
+            where id = ?
+        "#,
+    )
+    .bind(post_id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(post)
 }
@@ -61,19 +73,25 @@ pub async fn vote(
                     ? as direction
             )
             , duplicates as (
-              select parameters.user_id, parameters.post_id, parameters.direction == ifnull(current_vote.direction,0) as duplicate
-              from parameters 
-              left join current_vote using (user_id, post_id)
+                select
+                    parameters.user_id
+                    , parameters.post_id
+                    , parameters.direction == ifnull(current_vote.direction,0) as duplicate
+                from parameters 
+                left join current_vote using (user_id, post_id)
             )
-            insert into vote_history(user_id, post_id, direction) 
+            insert into vote_history(
+                user_id
+                , post_id
+                , direction
+            ) 
             select 
-              parameters.user_id
-              , parameters.post_id
-              , parameters.direction
+                parameters.user_id
+                , parameters.post_id
+                , parameters.direction
             from parameters
             join duplicates
             where not duplicate
-            ;
         "#,
     )
     .bind(user_id)
@@ -88,7 +106,15 @@ pub async fn vote(
 
 pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT id, content, parent_id FROM posts where parent_id is null ORDER BY created DESC",
+        r#"
+            select
+                id
+                , content
+                , parent_id
+            from posts
+            where parent_id is null
+            order by created desc
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -97,7 +123,15 @@ pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
 
 pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT id, content, parent_id FROM posts where parent_id is ? ORDER BY created DESC",
+        r#"
+            select
+                id
+                , content
+                , parent_id
+            from posts
+            where parent_id is ?
+            order by created desc
+        "#,
     )
     .bind(post_id)
     .fetch_all(pool)
@@ -106,14 +140,10 @@ pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
 }
 
 pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
-
     Ok(
         match crate::probabilities::find_top_note(post_id, pool).await? {
             None => None,
-            Some((note_id, _, _)) => {
-                get_post(note_id, pool).await?
-            }
-        }
+            Some((note_id, _, _)) => get_post(note_id, pool).await?,
+        },
     )
 }
-

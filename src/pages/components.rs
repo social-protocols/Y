@@ -4,10 +4,10 @@ use sqlx::SqlitePool;
 
 use crate::db;
 
-use common::structs::Post;
 use common::structs::Direction::Neutral;
+use common::structs::Post;
 
-use crate::pages::vote::{vote_buttons};
+use crate::pages::vote::vote_buttons;
 
 pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Result<Markup> {
     let top_note = db::get_top_note(post.id, pool).await?;
@@ -17,18 +17,18 @@ pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Resu
         div data-postid=(post.id) class="post mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {
             div  {
                 @if !focused {
-                    a href=(format!("/view_post/{}", post.id)) {                    
+                    a href=(format!("/view_post/{}", post.id)) {
                         (post.content)
                     }
                 } @else {
-                    (post.content)                
+                    (post.content)
                 }
             }
             div {
                 @match top_note.clone() {
                     Some(note) => {
                         a href=(format!("/view_post/{}", note.id)) {
-                            div data-postid=(note.id) class="post mt-4 mb-5 p-5 rounded-lg shadow bg-gray-100 dark:bg-slate-600" { 
+                            div data-postid=(note.id) class="post mt-4 mb-5 p-5 rounded-lg shadow bg-gray-100 dark:bg-slate-600" {
                                 p { (note.content) }
                             }
                         }
@@ -39,7 +39,7 @@ pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Resu
             div class="w-full flex mt-4" {
                 (vote_form(post.id, top_note_id))
                 // (vote_state(post_id, note_id))
-                @if focused { 
+                @if focused {
                     (reply_form(post.id))
                 }
            }
@@ -59,7 +59,6 @@ pub fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
 
 pub fn reply_form(parent_id: i64) -> Markup {
     html! {
-
         form hx-post=(format!("/create_post?redirect=/view_post/{}", parent_id)) {
             div class="w-full flex" {
                 input
@@ -82,7 +81,3 @@ pub fn reply_form(parent_id: i64) -> Markup {
         }
     }
 }
-
-
-
-

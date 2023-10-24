@@ -33,15 +33,18 @@ with latest as (
     SELECT
       user_id
       , post_id
-      -- TODO: Check whether this is reliable behavior. From what I can tell, direction will be the direction from teh record
-      -- corresponding to max(created), that it, it will be the value of the user's latest vote
+
+      -- NOTE: direction will be the value of direction pulled from the same row that has max(created)
+      -- https://www.sqlite.org/lang_select.html#bareagg
       , direction
       , max(created) AS created
     FROM vote_history
-    GROUP BY 1,2
-
+    GROUP BY user_id, post_id
+)
 -- The latest vote might be zero, so in that case we don't return a record for this user and post
-) select * from latest where direction != 0;
+select *
+from latest
+where direction != 0;
 
 
 -- current_tally counts counts the latest votes, regardless of whether they are informed or not.
@@ -83,14 +86,21 @@ with current_informed_votes as (
       , max(created) AS created
     FROM vote_history
     where note_id is not null
-    GROUP BY 1,2, 3
-
+    GROUP BY 
+      user_id
+      , post_id
+      , note_id
 )
 , informed_tally as (
   select 
     post_id
     , note_id
-    , sum(case when direction = 1 then 1 else 0 end) as upvotes
+    , sum(
+      case
+        when direction = 1 then 1
+        else 0
+      end
+    ) as upvotes
     , count(*) as votes
   from current_informed_votes
   -- The latest vote might be zero, so in that case we don't return a record for this user and post
@@ -153,9 +163,10 @@ select
   post_id
   , note_id
   , sum(
-    case when direction == 1
-    then 1 
-    else 0 end 
+    case direction
+      when 1 then 1 
+      else 0
+    end 
   ) as upvotes_given_not_shown_this_note
   , count(*) as votes_given_not_shown_this_note
 

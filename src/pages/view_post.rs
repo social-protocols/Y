@@ -5,11 +5,11 @@ use sqlx::SqlitePool;
 
 use crate::db;
 
-use crate::pages::components::{post_details};
+use crate::pages::components::post_details;
 use crate::pages::positions::load_positions_js;
 
+use crate::error::AppError;
 use common::structs::{Post, User};
-use crate::{error::AppError};
 
 use super::base_template::BaseTemplate;
 
@@ -34,13 +34,7 @@ pub async fn view_post(
     Ok(base.title("𝕐").content(content).render())
 }
 
-
-
-
-async fn parent_thread(
-    post: &Post,
-    pool: &SqlitePool,
-) -> Result<Markup> {
+async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
     let transitive_parents: Vec<Post> = db::get_transitive_parents(post, pool).await?;
     Ok(html! {
         a href="/" {
@@ -69,7 +63,7 @@ async fn replies(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
 
     Ok(html! {
         div {
-            @if replies.len() > 1 { 
+            @if !replies.is_empty() {
                 h2 class="mt-4 ml-2 mb-2" { "More Replies" }
                 @for post in replies.iter() {
                     div data-postid=(post.id) class="post mb-5 p-5 rounded-lg shadow bg-white dark:bg-slate-700" {

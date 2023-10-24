@@ -31,7 +31,6 @@ pub async fn vote(
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<VoteRequest>,
 ) -> Result<Markup, AppError> {
-
     // First, interpret the user intent based on the button pressed **and** the current state.
     let new_state = if form_data.direction == form_data.state {
         Neutral
@@ -57,7 +56,6 @@ pub async fn vote(
 }
 
 pub fn vote_buttons(post_id: i64, note_id: Option<i64>, state: Direction) -> Markup {
-
     html! {
         div class="vote-buttons mt-2 w-7" {
             input type="hidden" value=(post_id) name="post_id";
