@@ -1,27 +1,37 @@
 CREATE TABLE users (
-  id integer not null primary key, -- rowid
-  secret text not null unique,
-  created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
+    id      integer   not null primary key -- rowid
+  , secret  text      not null unique
+  , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
 
+-- if a question is a top-level question -> no parent and question_id = id
+-- if a question is a reply -> parent is the id of the post it replies to
+-- -- if it reuses a question -> that question is its question_id
+-- -- if it doesn't reuse a question -> question_id = id
 create table posts (
-    id integer primary key -- row id
-    , content text not null
-    , parent_id integer references posts (id) on delete cascade on update cascade -- nullable
-    , question_id integer references posts (id) on delete cascade on update cascade -- nullable
-        -- if a question is a top-level question -> no parent and question_id = id
-        -- if a question is a reply -> parent is the id of the post it replies to
-        -- -- if it reuses a question -> that question is its question_id
-        -- -- if it doesn't reuse a question -> question_id = id
-    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
+      id          integer   primary key -- row id
+    , content     text      not null
+    , parent_id   integer   references posts (id)
+        on delete cascade
+        on update cascade -- nullable
+    , question_id integer   references posts (id)
+        on delete cascade
+        on update cascade -- nullable
+    , created     TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
 
 create table vote_history (
-    user_id not null references users (id) on delete cascade on update cascade
-    , post_id not null references posts (id) on delete cascade on update cascade
-    , note_id references posts (id) on delete cascade on update cascade
+      user_id   not null references users (id)
+        on delete cascade
+        on update cascade
+    , post_id   not null references posts (id)
+        on delete cascade
+        on update cascade
+    , note_id   references posts (id)
+        on delete cascade
+        on update cascade
     , direction integer not null
-    , created TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
+    , created   TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -31,7 +41,7 @@ create table vote_history (
 CREATE VIEW current_vote as
 with latest as (
     SELECT
-      user_id
+        user_id
       , post_id
 
       -- NOTE: direction will be the value of direction pulled from the same row that has max(created)
@@ -47,15 +57,20 @@ from latest
 where direction != 0;
 
 
--- current_tally counts counts the latest votes, regardless of whether they are informed or not.
+-- current_tally counts the latest votes, regardless of whether they are informed or not.
 create view current_tally as
 select
-  post_id
-  , sum(case when direction = 1 then 1 else 0 end) as upvotes
+    post_id
+  , sum(
+      case direction
+        when 1 then 1
+        else 0
+      end
+    ) as upvotes
   , count(*) as votes
   -- , sum(case when note_id is null and direction = 1 then 1 else 0 end) as upvotes_given_not_seen_any_note
   -- , sum(case when note_id is null then 1 else 0 end) as votes_given_not_seen_any_note
-from current_vote 
+from current_vote
 group by 1;
 
 
@@ -73,10 +88,10 @@ group by 1;
 
 
 drop view if exists current_informed_tally;
-create view current_informed_tally as 
+create view current_informed_tally as
 with current_informed_votes as (
     SELECT
-      user_id
+        user_id
       , post_id
       , note_id
 
@@ -155,16 +170,16 @@ first_votes_on_notes as (
         , votes_given_shown_this_note
         , max(created)
     from  votes_before_note
-    where 
-    before_note 
+    where
+    before_note
     group by 1, 2, 3
 )
 select
-  post_id
+    post_id
   , note_id
   , sum(
     case direction
-      when 1 then 1 
+      when 1 then 1
       else 0
     end 
   ) as upvotes_given_not_shown_this_note
@@ -180,10 +195,9 @@ group by 1,2;
 drop view if exists probabilities_given_note;
 create view probabilities_given_note as
 with parameters as (
-    select 
-        .85 as prior 
+    select
+          .85 as prior
         , 2 as priorWeight
-
 )
 , given_not_shown_this_note as (
     select 
@@ -210,6 +224,14 @@ select
     -- group by post_id
 ;
 
+
+create table hashtag (
+    post_id integer not null references posts (id)
+      on delete cascade
+      on update cascade
+  , hashtag text    not null
+  , unique(post_id, hashtag)
+);
 
 
 -- drop view if exists current_informed_tally;
