@@ -161,3 +161,23 @@ pub async fn add_hashtag(post_id: i64, hashtag: &str, pool: &SqlitePool) -> Resu
     .await?;
     Ok(())
 }
+
+pub async fn get_top_level_posts_with_hashtag(
+    hashtag: &str,
+    pool: &SqlitePool,
+) -> Result<Vec<Post>> {
+    let result = sqlx::query_as::<_, Post>(
+        r#"
+            SELECT *
+            FROM posts
+            JOIN hashtag
+            ON posts.id = hashtag.post_id
+            WHERE hashtag.hashtag = ?
+            AND parent_id IS NULL
+        "#,
+    )
+    .bind(hashtag)
+    .fetch_all(pool)
+    .await?;
+    Ok(result)
+}

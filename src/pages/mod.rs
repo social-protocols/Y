@@ -1,6 +1,7 @@
 //! One file per page
 
 pub mod base_template;
+pub mod communities;
 pub mod components;
 pub mod create_post;
 pub mod frontpage;

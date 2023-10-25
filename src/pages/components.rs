@@ -48,6 +48,28 @@ pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Resu
     })
 }
 
+pub fn create_post_form() -> Markup {
+    html! {
+        div class="bg-white rounded-lg shadow-lg w-120 h-30 p-5 mb-10 flex dark:bg-slate-700" {
+            form hx-post="/create_post" {
+                div class="w-full flex" {
+                    div class="mr-1" {
+                        textarea
+                            name="post_content"
+                            // class="p-10 resize-none w-full text-black"
+                            class="block p-2.5 text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" cols="100" rows="1"
+                            style="width: 100%"
+                            placeholder="New Post" {}
+                    }
+                    button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded float-right tx-sm" {
+                        "Post"
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn vote_form(post_id: i64, note_id: Option<i64>) -> Markup {
     html! {
         div class="flex nowrap vote-form" {
