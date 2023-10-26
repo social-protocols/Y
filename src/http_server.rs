@@ -7,16 +7,15 @@ use crate::pages::{
     tags::add_tag, view_post::view_post, vote::vote,
 };
 use anyhow::Result;
-use axum::routing::post;
-use axum::Extension;
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Extension, Router,
+};
 use http::StatusCode;
-use pages::frontpage::frontpage;
-use pages::user::options::options;
+use pages::{frontpage::frontpage, user::options::options};
 use sqlx::SqlitePool;
 use tower_cookies::CookieManagerLayer;
-use tower_http::compression::CompressionLayer;
-use tower_http::trace::TraceLayer;
+use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing::info;
 
 pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {

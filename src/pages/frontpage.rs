@@ -1,8 +1,11 @@
-use crate::error::AppError;
-
 use crate::{
-    db, pages::components::create_post_form, pages::components::post_details,
-    pages::positions::load_positions_js_for_homepage,
+    db,
+    error::AppError,
+    pages::{
+        base_template::BaseTemplate,
+        components::{create_post_form, post_details},
+        positions::load_positions_js_for_homepage,
+    },
 };
 use common::structs::User;
 
@@ -11,8 +14,6 @@ use axum::Extension;
 use maud::{html, Markup};
 
 use sqlx::SqlitePool;
-
-use crate::pages::base_template::BaseTemplate;
 
 pub async fn frontpage(
     _maybe_user: Option<User>,
@@ -40,11 +41,7 @@ async fn most_used_tags(pool: &SqlitePool) -> Result<Markup, AppError> {
         ul class="list-none" {
             @for tag in tags.iter() {
                 li class="font-bold pb-4" {
-                    a
-                        href=(format!("/s/{tag}"))
-                    {
-                        (format!("#{tag}"))
-                    }
+                    a href=(format!("/s/{tag}")) { (format!("#{tag}")) }
                 }
             }
         }
