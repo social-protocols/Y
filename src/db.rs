@@ -1,15 +1,13 @@
-use common::structs::{Direction, Post};
-
 use anyhow::{anyhow, Result};
-
+use common::structs::{Direction, Post};
 use sqlx::SqlitePool;
 
 pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(
         r#"
-            insert into posts (content, parent_id)
-            values (?, ?)
-            returning id
+            INSERT INTO posts (content, parent_id)
+            VALUES (?, ?)
+            RETURNING id
         "#,
     )
     .bind(content)
@@ -22,12 +20,12 @@ pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePoo
 pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     let post = sqlx::query_as::<_, Post>(
         r#"
-            select
-                id
+            SELECT
+                  id
                 , content
                 , parent_id
-            from posts
-            where id = ?
+            FROM posts
+            WHERE id = ?
         "#,
     )
     .bind(post_id)
@@ -65,33 +63,33 @@ pub async fn vote(
 
     sqlx::query(
         r#"
-            with parameters as (
-                select 
-                    ? as user_id,
-                    ? as post_id,
-                    ? as note_id,
-                    ? as direction
+            WITH parameters AS (
+                SELECT
+                    ? AS user_id,
+                    ? AS post_id,
+                    ? AS note_id,
+                    ? AS direction
             )
-            , duplicates as (
-                select
-                    parameters.user_id
+            , duplicates AS (
+                SELECT
+                      parameters.user_id
                     , parameters.post_id
-                    , parameters.direction == ifnull(current_vote.direction,0) as duplicate
-                from parameters 
-                left join current_vote using (user_id, post_id)
+                    , parameters.direction == IFNULL(current_vote.direction, 0) AS duplicate
+                FROM parameters
+                LEFT JOIN current_vote USING (user_id, post_id)
             )
-            insert into vote_history(
-                user_id
+            INSERT INTO vote_history (
+                  user_id
                 , post_id
                 , direction
-            ) 
-            select 
-                parameters.user_id
+            )
+            SELECT
+                  parameters.user_id
                 , parameters.post_id
                 , parameters.direction
-            from parameters
-            join duplicates
-            where not duplicate
+            FROM parameters
+            JOIN duplicates
+            WHERE NOT duplicate
         "#,
     )
     .bind(user_id)
@@ -107,13 +105,13 @@ pub async fn vote(
 pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
         r#"
-            select
-                id
+            SELECT
+                  id
                 , content
                 , parent_id
-            from posts
-            where parent_id is null
-            order by created desc
+            FROM posts
+            WHERE parent_id IS NULL
+            ORDER BY created DESC
         "#,
     )
     .fetch_all(pool)
@@ -124,13 +122,13 @@ pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
 pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
     let posts = sqlx::query_as::<_, Post>(
         r#"
-            select
-                id
+            SELECT
+                  id
                 , content
                 , parent_id
-            from posts
-            where parent_id is ?
-            order by created desc
+            FROM posts
+            WHERE parent_id IS ?
+            ORDER BY created DESC
         "#,
     )
     .bind(post_id)
