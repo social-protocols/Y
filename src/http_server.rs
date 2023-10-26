@@ -3,8 +3,8 @@ use std::net::SocketAddr;
 use crate::api;
 use crate::http_static::static_handler;
 use crate::pages::{
-    self, communities::community_frontpage, create_post::create_post, hashtags::add_hashtag,
-    positions::positions, view_post::view_post, vote::vote,
+    self, communities::community_frontpage, create_post::create_post, positions::positions,
+    tags::add_tag, view_post::view_post, vote::vote,
 };
 use anyhow::Result;
 use axum::routing::post;
@@ -24,13 +24,13 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
 
     app = app
         .route("/", get(frontpage))
-        .route("/s/:hashtag", get(community_frontpage))
+        .route("/s/:tag", get(community_frontpage))
         .route("/create_post", post(create_post))
         .route("/view_post/:post_id", get(view_post))
         .route("/vote", post(vote))
         .route("/positions", get(positions))
         .route("/options", get(options))
-        .route("/add_hashtag", post(add_hashtag));
+        .route("/add_tag", post(add_tag));
 
     let apiv0 = Router::new()
         .route("/user/create", post(api::create_user))

@@ -8,16 +8,15 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 
 #[derive(Deserialize, Debug)]
-pub struct HashtagRequest {
+pub struct TagRequest {
     post_id: i64,
-    hashtag: String,
+    tag: String,
 }
 
-pub async fn add_hashtag(
+pub async fn add_tag(
     Extension(pool): Extension<SqlitePool>,
-    Form(form_data): Form<HashtagRequest>,
+    Form(form_data): Form<TagRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    db::add_hashtag(form_data.post_id, form_data.hashtag.as_str(), &pool).await?;
+    db::add_tag(form_data.post_id, form_data.tag.as_str(), &pool).await?;
     Ok(StatusCode::OK)
 }
-

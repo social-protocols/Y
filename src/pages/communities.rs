@@ -9,20 +9,20 @@ use maud::{html, Markup};
 use sqlx::SqlitePool;
 
 pub async fn community_frontpage(
-    Path(hashtag): Path<String>,
+    Path(tag): Path<String>,
     Extension(_pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
     let content = html! {
         (create_post_form())
-        h1 class="text-xl font-bold mb-4" { (format!("#{hashtag}")) }
-        (posts_with_hashtag(hashtag.as_str(), &_pool).await?)
+        h1 class="text-xl font-bold mb-4" { (format!("#{tag}")) }
+        (posts_with_tag(tag.as_str(), &_pool).await?)
     };
     Ok(base.title("Y").content(content).render())
 }
 
-async fn posts_with_hashtag(hashtag: &str, pool: &SqlitePool) -> Result<Markup> {
-    let posts = db::get_top_level_posts_with_hashtag(hashtag, pool).await?;
+async fn posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Markup> {
+    let posts = db::get_top_level_posts_with_tag(tag, pool).await?;
     Ok(html! {
         div {
             @for post in posts.iter() {

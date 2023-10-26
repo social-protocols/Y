@@ -225,12 +225,10 @@ select
 ;
 
 
-create table hashtag (
-    post_id integer not null references posts (id)
-      on delete cascade
-      on update cascade
-  , hashtag text    not null
-  , unique(post_id, hashtag)
+create table tags (
+    post_id integer not null references posts (id) on delete cascade on update cascade
+  , tag     text    not null
+  , unique(post_id, tag)
 );
 
 

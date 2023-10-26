@@ -40,7 +40,7 @@ pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Resu
                 (vote_form(post.id, top_note_id))
                 // (vote_state(post_id, note_id))
                 @if focused {
-                    (hashtag_form(post.id))
+                    (tag_form(post.id))
                     (reply_form(post.id))
                 }
            }
@@ -105,11 +105,10 @@ pub fn reply_form(parent_id: i64) -> Markup {
     }
 }
 
-pub fn hashtag_form(post_id: i64) -> Markup {
+pub fn tag_form(post_id: i64) -> Markup {
     html! {
-        div class="flex nowrap hashtag-form" {
-            // form hx-post=(format!("/add_hashtag?redirect=/view_post/{}", post_id)) {
-            form hx-post=(format!("/add_hashtag?redirect=/view_post/{}", post_id)) {
+        div class="flex nowrap tag-form" {
+            form hx-post=(format!("/add_tag?redirect=/view_post/{}", post_id)) {
                 div
                     class="w-full flex"
                 {
@@ -119,9 +118,9 @@ pub fn hashtag_form(post_id: i64) -> Markup {
                         value=(format!("{}", post_id)) {}
                     div class="mr-1" {
                         textarea
-                            name="hashtag"
+                            name="tag"
                             class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" cols="100" rows="1"
-                            placeholder="Enter your hashtag" {}
+                            placeholder="Enter your tag" {}
                     }
                     div {
                         button

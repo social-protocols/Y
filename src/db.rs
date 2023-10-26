@@ -148,46 +148,43 @@ pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post
     )
 }
 
-pub async fn add_hashtag(post_id: i64, hashtag: &str, pool: &SqlitePool) -> Result<()> {
+pub async fn add_tag(post_id: i64, tag: &str, pool: &SqlitePool) -> Result<()> {
     sqlx::query(
         r#"
-            INSERT OR IGNORE INTO hashtag (post_id, hashtag)
+            INSERT OR IGNORE INTO tags (post_id, tag)
             VALUES (?, ?)
         "#,
     )
     .bind(post_id)
-    .bind(hashtag)
+    .bind(tag)
     .execute(pool)
     .await?;
     Ok(())
 }
 
-pub async fn get_top_level_posts_with_hashtag(
-    hashtag: &str,
-    pool: &SqlitePool,
-) -> Result<Vec<Post>> {
+pub async fn get_top_level_posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
     let result = sqlx::query_as::<_, Post>(
         r#"
             SELECT *
             FROM posts
-            JOIN hashtag
-            ON posts.id = hashtag.post_id
-            WHERE hashtag.hashtag = ?
+            JOIN tags
+            ON posts.id = tags.post_id
+            WHERE tags.tag = ?
             AND parent_id IS NULL
         "#,
     )
-    .bind(hashtag)
+    .bind(tag)
     .fetch_all(pool)
     .await?;
     Ok(result)
 }
 
-pub async fn get_top_5_hashtags(pool: &SqlitePool) -> Result<Vec<String>> {
+pub async fn get_top_5_tags(pool: &SqlitePool) -> Result<Vec<String>> {
     let result = sqlx::query_scalar::<_, String>(
         r#"
-            SELECT hashtag
-            FROM hashtag
-            GROUP BY hashtag
+            SELECT tag
+            FROM tags
+            GROUP BY tag
             ORDER BY COUNT(*) DESC
             LIMIT 5
         "#,
