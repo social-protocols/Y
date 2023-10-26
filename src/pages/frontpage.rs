@@ -21,6 +21,9 @@ pub async fn frontpage(
 ) -> Result<Markup, AppError> {
     let content = html! {
         div class="mb-10" {
+            div class="fixed top-0 left-0 m-5" {
+                (most_used_hashtags(&_pool).await?)
+            }
             div {
                 (create_post_form())
                 (posts(&_pool).await?)
@@ -29,6 +32,23 @@ pub async fn frontpage(
         }
     };
     Ok(base.title("Y").content(content).render())
+}
+
+async fn most_used_hashtags(pool: &SqlitePool) -> Result<Markup, AppError> {
+    let hashtags = db::get_top_5_hashtags(pool).await?;
+    Ok(html! {
+        ul class="list-none" {
+            @for tag in hashtags.iter() {
+                li class="font-bold pb-4" {
+                    a
+                        href=(format!("/s/{tag}"))
+                    {
+                        (format!("#{tag}"))
+                    }
+                }
+            }
+        }
+    })
 }
 
 async fn posts(pool: &SqlitePool) -> Result<Markup> {

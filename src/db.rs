@@ -181,3 +181,18 @@ pub async fn get_top_level_posts_with_hashtag(
     .await?;
     Ok(result)
 }
+
+pub async fn get_top_5_hashtags(pool: &SqlitePool) -> Result<Vec<String>> {
+    let result = sqlx::query_scalar::<_, String>(
+        r#"
+            SELECT hashtag
+            FROM hashtag
+            GROUP BY hashtag
+            ORDER BY COUNT(*) DESC
+            LIMIT 5
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(result)
+}
