@@ -149,6 +149,7 @@ pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post
 }
 
 pub async fn add_tag(post_id: i64, tag: &str, pool: &SqlitePool) -> Result<()> {
+    let normalized_tag = normalize_tag(tag);
     sqlx::query(
         r#"
             INSERT OR IGNORE INTO tags (post_id, tag)
@@ -156,10 +157,17 @@ pub async fn add_tag(post_id: i64, tag: &str, pool: &SqlitePool) -> Result<()> {
         "#,
     )
     .bind(post_id)
-    .bind(tag)
+    .bind(normalized_tag)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+fn normalize_tag(tag: &str) -> String {
+    tag.to_lowercase()
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect()
 }
 
 pub async fn get_top_level_posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
