@@ -151,7 +151,7 @@ pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post
 pub async fn add_hashtag(post_id: i64, hashtag: &str, pool: &SqlitePool) -> Result<()> {
     sqlx::query(
         r#"
-            INSERT INTO hashtag (post_id, hashtag)
+            INSERT OR IGNORE INTO hashtag (post_id, hashtag)
             VALUES (?, ?)
         "#,
     )
