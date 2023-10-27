@@ -33,6 +33,8 @@ pub async fn frontpage(
             }
         }
     };
+
+    // TODO: redirect from "/y/global"
     Ok(base.title("Y").content(content).render())
 }
 

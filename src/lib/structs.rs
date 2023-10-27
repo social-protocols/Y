@@ -26,6 +26,7 @@ pub struct Post {
     pub id: i64,
     pub content: String,
     pub parent_id: Option<i64>,
+    pub author_id: i64,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Copy, Clone, FromPrimitive, Display, Serialize)]

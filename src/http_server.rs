@@ -23,13 +23,12 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
 
     app = app
         .route("/", get(frontpage))
-        .route("/s/:tag", get(community_frontpage))
+        .route("/y/:tag", get(community_frontpage))
         .route("/create_post", post(create_post))
-        .route("/view_post/:post_id", get(view_post))
+        .route("/y/:tag/post/:post_id", get(view_post))
         .route("/vote", post(vote))
         .route("/positions", get(positions))
-        .route("/options", get(options))
-        .route("/add_tag", post(add_tag));
+        .route("/options", get(options));
 
     let apiv0 = Router::new()
         .route("/user/create", post(api::create_user))

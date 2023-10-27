@@ -2,30 +2,42 @@ use anyhow::{anyhow, Result};
 use common::structs::{Direction, Post};
 use sqlx::SqlitePool;
 
-pub async fn create_post(content: &str, parent_id: Option<i64>, pool: &SqlitePool) -> Result<i64> {
+// TODO: transactional
+pub async fn create_post(
+    tag: &str,
+    parent_id: Option<i64>,
+    content: &str,
+    author_id: i64,
+    pool: &SqlitePool,
+) -> Result<i64> {
     let created_post_id = sqlx::query_scalar::<_, i64>(
         r#"
-            INSERT INTO posts (content, parent_id)
-            VALUES (?, ?)
-            RETURNING id
+            insert into posts (content, parent_id, author_id)
+            values (?, ?, ?)
+            returning id
         "#,
     )
     .bind(content)
     .bind(parent_id)
+    .bind(author_id)
     .fetch_one(pool)
     .await?;
+
+    vote(author_id, tag, created_post_id, None, Direction::Up, pool).await?;
+
     Ok(created_post_id)
 }
 
 pub async fn get_post(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     let post = sqlx::query_as::<_, Post>(
         r#"
-            SELECT
+            select
                   id
                 , content
                 , parent_id
-            FROM posts
-            WHERE id = ?
+                , author_id
+            from posts
+            where id = ?
         "#,
     )
     .bind(post_id)
@@ -54,6 +66,7 @@ pub async fn get_transitive_parents(post: &Post, pool: &SqlitePool) -> Result<Ve
 
 pub async fn vote(
     user_id: i64,
+    tag: &str,
     post_id: i64,
     note_id: Option<i64>,
     direction: Direction,
@@ -61,38 +74,45 @@ pub async fn vote(
 ) -> Result<()> {
     let direction_i32 = direction as i32;
 
+    let tag_id = get_or_insert_tag_id(tag, pool).await?;
+
     sqlx::query(
         r#"
-            WITH parameters AS (
-                SELECT
-                    ? AS user_id,
-                    ? AS post_id,
-                    ? AS note_id,
-                    ? AS direction
+            with parameters as (
+                select
+                    ? as user_id,
+                    ? as tag_id,
+                    ? as post_id,
+                    ? as note_id,
+                    ? as direction
             )
-            , duplicates AS (
-                SELECT
+            , duplicates as (
+                select
                       parameters.user_id
+                    , parameters.tag_id
                     , parameters.post_id
-                    , parameters.direction == IFNULL(current_vote.direction, 0) AS duplicate
-                FROM parameters
-                LEFT JOIN current_vote USING (user_id, post_id)
+                    , parameters.direction == ifnull(current_vote.direction, 0) as duplicate
+                from parameters
+                left join current_vote using (user_id, tag_id, post_id)
             )
-            INSERT INTO vote_history (
+            insert into vote_history (
                   user_id
+                , tag_id
                 , post_id
                 , direction
             )
-            SELECT
+            select
                   parameters.user_id
+                , parameters.tag_id
                 , parameters.post_id
                 , parameters.direction
-            FROM parameters
-            JOIN duplicates
-            WHERE NOT duplicate
+            from parameters
+            join duplicates
+            where not duplicate
         "#,
     )
     .bind(user_id)
+    .bind(tag_id)
     .bind(post_id)
     .bind(note_id)
     .bind(direction_i32)
@@ -102,63 +122,98 @@ pub async fn vote(
     Ok(())
 }
 
-pub async fn list_top_level_posts(pool: &SqlitePool) -> Result<Vec<Post>> {
-    let posts = sqlx::query_as::<_, Post>(
+pub async fn get_or_insert_tag_id(tag: &str, pool: &SqlitePool) -> Result<i64> {
+    let tag_id = sqlx::query_scalar::<_, i64>(
         r#"
-            SELECT
-                  id
-                , content
-                , parent_id
-            FROM posts
-            WHERE parent_id IS NULL
-            ORDER BY created DESC
+            insert or ignore into tags (tag) values (?)
+            returning id
         "#,
     )
-    .fetch_all(pool)
+    .bind(tag)
+    .fetch_optional(pool)
     .await?;
-    Ok(posts)
+
+    Ok(match tag_id {
+        None => get_tag_id(tag, pool).await?.unwrap(),
+        Some(tag_id) => tag_id,
+    })
 }
 
-pub async fn get_replies(post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
+async fn get_tag_id(tag: &str, pool: &SqlitePool) -> Result<Option<i64>> {
+    let tag_id = sqlx::query_scalar::<_, i64>(
+        r#"
+            select id
+            from tags
+            where tag = ?
+        "#,
+    )
+    .bind(tag)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(tag_id)
+}
+
+pub async fn list_top_level_posts(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
+    let tag_id = get_tag_id(tag, pool).await?;
+    let result = match tag_id {
+        Some(tag_id) => {
+            sqlx::query_as::<_, Post>(
+                r#"
+                    select
+                        id
+                        , content
+                        , parent_id
+                        , author_id
+                    from posts
+                    join current_tally ct
+                    on posts.id = ct.post_id
+                    and ct.tag_id = ?
+                    where posts.parent_id is null
+                    order by ct.upvotes * (1 + log(ct.upvotes / ct.votes)) desc
+                "#,
+            )
+            .bind(tag_id)
+            .fetch_all(pool)
+            .await?
+        }
+        None => vec![],
+    };
+    Ok(result)
+}
+
+pub async fn get_replies(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<Vec<Post>> {
+    // TODO: sort replies by score for tag
+    let tag_id = get_tag_id(tag, pool).await?;
+
     let posts = sqlx::query_as::<_, Post>(
         r#"
-            SELECT
+            select
                   id
                 , content
                 , parent_id
-            FROM posts
-            WHERE parent_id IS ?
-            ORDER BY created DESC
+            from posts
+            join current_tally ct
+            on posts.id = ct.post_id
+            and ct.tag_id = ?
+            where parent_id is ?
+            order by ct.upvotes * (1 + log(ct.upvotes / ct.votes)) desc
         "#,
     )
+    .bind(tag_id)
     .bind(post_id)
     .fetch_all(pool)
     .await?;
     Ok(posts)
 }
 
-pub async fn get_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
+pub async fn get_top_note(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     Ok(
         match crate::probabilities::find_top_note(post_id, pool).await? {
             None => None,
             Some((note_id, _, _)) => get_post(note_id, pool).await?,
         },
     )
-}
-
-pub async fn add_tag(post_id: i64, tag: &str, pool: &SqlitePool) -> Result<()> {
-    let normalized_tag = normalize_tag(tag);
-    sqlx::query(
-        r#"
-            INSERT OR IGNORE INTO tags (post_id, tag)
-            VALUES (?, ?)
-        "#,
-    )
-    .bind(post_id)
-    .bind(normalized_tag)
-    .execute(pool)
-    .await?;
-    Ok(())
 }
 
 fn normalize_tag(tag: &str) -> String {
@@ -169,30 +224,37 @@ fn normalize_tag(tag: &str) -> String {
 }
 
 pub async fn get_top_level_posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
-    let result = sqlx::query_as::<_, Post>(
-        r#"
-            SELECT *
-            FROM posts
-            JOIN tags
-            ON posts.id = tags.post_id
-            WHERE tags.tag = ?
-            AND parent_id IS NULL
-        "#,
-    )
-    .bind(tag)
-    .fetch_all(pool)
-    .await?;
+    let tag_id = get_tag_id(tag, pool).await?;
+    let result = match tag_id {
+        Some(tag_id) => {
+            sqlx::query_as::<_, Post>(
+                r#"
+                    select *
+                    from posts
+                    join current_tally ct
+                    on posts.id = ct.post_id
+                    and ct.tag_id = ?
+                    where tags.tag = ?
+                    and parent_id is null
+                "#,
+            )
+            .bind(tag_id)
+            .fetch_all(pool)
+            .await?
+        }
+        None => vec![],
+    };
     Ok(result)
 }
 
 pub async fn get_top_5_tags(pool: &SqlitePool) -> Result<Vec<String>> {
     let result = sqlx::query_scalar::<_, String>(
         r#"
-            SELECT tag
-            FROM tags
-            GROUP BY tag
-            ORDER BY COUNT(*) DESC
-            LIMIT 5
+            select tag
+            from current_tally
+            group by tag_id
+            order by count(*) desc
+            limit 5
         "#,
     )
     .fetch_all(pool)
