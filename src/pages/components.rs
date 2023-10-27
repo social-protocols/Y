@@ -134,3 +134,15 @@ pub fn tag_form(post_id: i64) -> Markup {
         }
     }
 }
+
+pub async fn post_feed(posts: Vec<Post>, pool: &SqlitePool) -> Result<Markup> {
+    Ok(html! {
+        div {
+            @for post in posts.iter() {
+                div {
+                    (post_details(post, false, pool).await?)
+                }
+            }
+        }
+    })
+}

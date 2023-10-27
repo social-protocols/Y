@@ -3,7 +3,7 @@ use crate::{
     error::AppError,
     pages::{
         base_template::BaseTemplate,
-        components::{create_post_form, post_details},
+        components::{create_post_form, post_feed},
         positions::load_positions_js_for_homepage,
     },
 };
@@ -17,17 +17,18 @@ use sqlx::SqlitePool;
 
 pub async fn frontpage(
     _maybe_user: Option<User>,
-    Extension(_pool): Extension<SqlitePool>,
+    Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
+    let posts = db::list_top_level_posts(&pool).await?;
     let content = html! {
         div class="mb-10" {
             div class="fixed top-0 left-0 m-5" {
-                (most_used_tags(&_pool).await?)
+                (most_used_tags(&pool).await?)
             }
             div {
                 (create_post_form())
-                (posts(&_pool).await?)
+                (post_feed(posts, &pool).await?)
                 (load_positions_js_for_homepage())
             }
         }
@@ -42,19 +43,6 @@ async fn most_used_tags(pool: &SqlitePool) -> Result<Markup, AppError> {
             @for tag in tags.iter() {
                 li class="font-bold pb-4" {
                     a href=(format!("/s/{tag}")) { (format!("#{tag}")) }
-                }
-            }
-        }
-    })
-}
-
-async fn posts(pool: &SqlitePool) -> Result<Markup> {
-    let posts = db::list_top_level_posts(pool).await?;
-    Ok(html! {
-        div {
-            @for post in posts.iter() {
-                div {
-                    (post_details(post, false, pool).await?)
                 }
             }
         }
