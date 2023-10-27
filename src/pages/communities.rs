@@ -1,8 +1,10 @@
-use crate::db;
-use crate::error::AppError;
-use crate::pages::{
-    base_template::BaseTemplate,
-    components::{create_post_form, post_feed},
+use crate::{
+    db,
+    error::AppError,
+    pages::{
+        base_template::BaseTemplate,
+        components::{create_post_form, post_feed},
+    },
 };
 use anyhow::Result;
 use axum::{extract::Path, Extension};

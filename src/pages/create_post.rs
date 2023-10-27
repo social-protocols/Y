@@ -1,15 +1,10 @@
-use axum::extract::Query;
-use axum::response::IntoResponse;
-use axum::{Extension, Form};
+use crate::{db, error::AppError};
+use anyhow::anyhow;
+use axum::{extract::Query, response::IntoResponse, Extension, Form};
 use http::StatusCode;
+use serde::Deserialize;
 use sqlx::SqlitePool;
 use tower_cookies::Cookies;
-
-use anyhow::anyhow;
-
-use crate::db;
-use crate::error::AppError;
-use serde::Deserialize;
 
 fn default_none<T>() -> Option<T> {
     None

@@ -1,13 +1,8 @@
+use crate::{db, pages::vote::vote_buttons};
 use anyhow::Result;
+use common::structs::{Direction::Neutral, Post};
 use maud::{html, Markup};
 use sqlx::SqlitePool;
-
-use crate::db;
-
-use common::structs::Direction::Neutral;
-use common::structs::Post;
-
-use crate::pages::vote::vote_buttons;
 
 pub async fn post_details(post: &Post, focused: bool, pool: &SqlitePool) -> Result<Markup> {
     let top_note = db::get_top_note(post.id, pool).await?;
@@ -56,8 +51,13 @@ pub fn create_post_form() -> Markup {
                     div class="mr-1" {
                         textarea
                             name="post_content"
-                            // class="p-10 resize-none w-full text-black"
-                            class="block p-2.5 text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" cols="100" rows="1"
+                            class=r#"
+                                block p-2.5 text-gray-900 bg-gray-50 rounded-lg border border-gray-300
+                                focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600
+                                dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500
+                            "#
+                            cols="100"
+                            rows="1"
                             style="width: 100%"
                             placeholder="New Post" {}
                     }
@@ -91,8 +91,13 @@ pub fn reply_form(parent_id: i64) -> Markup {
                 div class="mr-1" {
                     textarea
                         name="post_content"
-                        class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" cols="100" rows="1"
-
+                        class=r#"
+                            block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300
+                            focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600
+                            dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500
+                        "#
+                        cols="100"
+                        rows="1"
                         placeholder="Enter your reply" {}
                 }
                 div class="justify-end" {
@@ -139,9 +144,7 @@ pub async fn post_feed(posts: Vec<Post>, pool: &SqlitePool) -> Result<Markup> {
     Ok(html! {
         div {
             @for post in posts.iter() {
-                div {
-                    (post_details(post, false, pool).await?)
-                }
+                div { (post_details(post, false, pool).await?) }
             }
         }
     })
