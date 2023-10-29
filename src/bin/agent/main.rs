@@ -1,33 +1,22 @@
+mod api;
+mod prompts;
+
 use anyhow::Result;
 use chatgpt::{
-    prelude::{ChatGPT, ModelConfigurationBuilder},
-    types::CompletionResponse,
+    functions::FunctionCall,
+    prelude::{gpt_function, ChatGPT, ModelConfigurationBuilder},
+    types::{ChatMessage, Role},
 };
-use common::structs_api::ApiFrontpage;
-use chatgpt::prelude::*;
+
+use common::structs_api::{ApiCreatePost, ApiDirection, ApiVote};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let openai_api_key = std::env::var("OPENAI_API_KEY").unwrap();
     let service_url = std::env::var("SERVICE_URL").unwrap();
 
-    // print frontpage
-    let frontpage = get_frontpage(&service_url).await?;
-    println!("{:?}", frontpage);
-
-    println!("Generating persona...");
-    let persona = generate_persona(&openai_api_key).await?;
-
-    println!("Simulating persona...");
-    let prompt = simulation_prompt(&persona, frontpage).await;
-    println!("{}", prompt);
-
-
-
-
-// ... within your conversation, before sending first message
     let client = ChatGPT::new_with_config(
-        openai_api_key,
+        &openai_api_key,
         ModelConfigurationBuilder::default()
             // .engine(ChatGPTEngine::Gpt35Turbo)
             .temperature(0.8)
@@ -35,96 +24,136 @@ async fn main() -> Result<()> {
             .build()
             .unwrap(),
     )?;
+
     let mut conversation = client.new_conversation();
-    // note that you need to call the function when adding it
-    // conversation.add_function(explain_intent())?;
+    conversation.add_function(view_frontpage())?;
     conversation.add_function(view_post())?;
+    // conversation.add_function(vote_post())?;
+    // conversation.add_function(reply_post())?;
+    let persona = prompts::generate_persona(&openai_api_key).await?;
+    // conversation.history.push(ChatMessage {
+    //     role: Role::System,
+    //     content: format!(
+    //         r#"
+    // You are the following persona:
+    // ```
+    // {persona}
+    // ```
+    //
+    // - You are using a social media platform, like Twitter.
+    // - You engage with things that interest you, raise your opinions and vote on things you like.
+    // - Always call functions to act.
+    //
+    //
+    // "#
+    //     ),
+    //     function_call: None,
+    // });
+    // conversation.history.push(ChatMessage {
+    //     role: Role::Function,
+    //     content: "".to_string(), // TODO, how does a function call look like?
+    //     function_call: Some(FunctionCall {
+    //         name: "view_frontpage".to_string(),
+    //         arguments: r#"{"explanation": "I'd like to see what others are talking about."}"#
+    //             .to_string(),
+    //     }),
+    // });
+
+    // let response = conversation.send_history().await?;
     let response = conversation
-        .send_message_functions(prompt)
+        .send_message_functions(
+            "start by looking at the frontpage and tell me, which posts there are. call a function to do that.",
+        )
         .await?;
 
-    println!("{}", response.message().content);
+    for message in conversation.history.iter().enumerate() {
+        println!("{message:#?}")
+    }
 
-
-
-
-
-    // generate 5 personas:
-    // for _ in 0..5 {
-    //     let persona = generate_persona(&openai_api_key).await?;
-    //     println!("{}\n", persona);
-    // }
     Ok(())
 }
 
-
-/// Give an explanation for what and why you are doing something
-/// 
-/// * explanation - brief explanation
+/// Visit the front page
+///
+/// * explanation - explanation of why you are viewing the front page
 #[gpt_function]
-async fn explain_intent(explanation: String) {
-    println!("explanation: {explanation}");
+pub async fn view_frontpage(explanation: String) -> String {
+    let service_url = std::env::var("SERVICE_URL").unwrap();
+    let frontpage = api::get_frontpage(&service_url).await.unwrap(); // TODO: proper error propagation
+    let frontpage_json = serde_json::to_string_pretty(&frontpage).unwrap();
+
+    format!(
+        r#"
+        ```
+        {frontpage_json}
+        ```
+        "#
+    )
 }
 
 /// Click a post to view it's details, including discussion
-/// 
+///
 /// * explanation - explanation of why you are viewing this post
 /// * post_id - id of the post to view
 #[gpt_function]
-async fn view_post(explanation: String, post_id: String) {
+pub async fn view_post(explanation: String, post_id: i64) -> String {
     println!("Viewing post. {explanation} post_id: {post_id}");
+    let service_url = std::env::var("SERVICE_URL").unwrap();
+    let post_page = api::get_post_page(&service_url, post_id).await.unwrap(); // TODO: proper error propagation
+    let post_page_json = serde_json::to_string_pretty(&post_page).unwrap();
+
+    format!(
+        r#"
+        ```
+        {post_page_json}
+        ```
+        "#
+    )
 }
 
-
-pub async fn simulation_prompt(persona: &str, frontpage: ApiFrontpage) -> String {
-    let frontpage_json = serde_json::to_string_pretty(&frontpage).unwrap();
-    format!(r#"
-    You are the following persona:
-    ```
-    {persona}
-    ```
-
-    You are using a social media platform, like Twitter. You engage with things that interest you, raise your opinions and vote on things you like. 
-
-    You are looking at the frontpage:
-    ```
-    {frontpage_json}
-    ```
-    Possible actions:
-    - View a post
-
-    Now call a function.
-
-    "#)
+/// Vote on the currently viewed post. To vote on replies you have to view them first.
+///
+/// * explanation - explanation of why you are voting on this post
+/// * post_id - id of the post
+/// * note_id - if post is shown with a note, specify it
+/// * direction - upvote or downvote
+#[gpt_function]
+pub async fn vote(
+    explanation: String,
+    post_id: i64,
+    note_id: Option<i64>,
+    direction: ApiDirection,
+) {
+    println!("Voting on post. {explanation} post_id: {post_id}, note_id: {note_id:?}, direction: {direction:?}");
+    let service_url = std::env::var("SERVICE_URL").unwrap();
+    api::vote_post(
+        &service_url,
+        ApiVote {
+            post_id,
+            note_id,
+            direction,
+        },
+    )
+    .await
+    .unwrap(); // TODO: proper error propagation
 }
 
-pub async fn get_frontpage(service_url: &str) -> Result<ApiFrontpage> {
-    let client = reqwest::Client::new();
-    let url = format!("{service_url}/api/v0/frontpage");
-    let response = client
-        .get(&url)
-        .send()
-        .await?
-        .json::<ApiFrontpage>()
-        .await?;
-    Ok(response)
-}
-
-pub async fn generate_persona(key: &str) -> Result<String> {
-    // TODO: generate big list of jobs, hobbies, age etc and randomly select from them
-    let client = ChatGPT::new_with_config(
-        key,
-        ModelConfigurationBuilder::default()
-            // .engine(ChatGPTEngine::Gpt35Turbo)
-            .temperature(0.8)
-            .max_tokens(1000u32)
-            .build()
-            .unwrap(),
-    )?;
-
-    let prompt =
-        r#"concisely generate a random persona. Start with name, age, personality traits, occupation, interests. No explanations."#.to_string();
-
-    let response: CompletionResponse = client.send_message(prompt).await?;
-    Ok(response.message().content.clone())
+/// Reply to a post
+///
+/// * explanation - explanation of why you are replying
+/// * post_id - id of the post
+/// * content - your reply text
+#[gpt_function]
+pub async fn reply(explanation: String, post_id: i64, content: String) {
+    println!("Reploying to post. {explanation} post_id: {post_id}, content: {content}");
+    let service_url = std::env::var("SERVICE_URL").unwrap();
+    api::create_post(
+        &service_url,
+        ApiCreatePost {
+            parent_id: Some(post_id),
+            content,
+        },
+    )
+    .await
+    .unwrap(); // TODO: proper error propagation
 }
