@@ -19,6 +19,7 @@ fn default_none() -> Option<i64> {
 
 #[derive(Deserialize)]
 pub struct VoteRequest {
+    tag: String,
     post_id: i64,
     #[serde(default = "default_none")]
     note_id: Option<i64>,
@@ -41,6 +42,7 @@ pub async fn vote(
     let user = auth::get_or_create_user(&cookies, &pool).await?;
     db::vote(
         user.id,
+        form_data.tag.as_str(),
         form_data.post_id,
         form_data.note_id,
         new_state,

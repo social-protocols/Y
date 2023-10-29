@@ -64,6 +64,7 @@ pub async fn get_transitive_parents(post: &Post, pool: &SqlitePool) -> Result<Ve
     Ok(parents)
 }
 
+// TODO: if a new post is untagged, do we post in in #global?
 pub async fn vote(
     user_id: i64,
     tag: &str,
@@ -207,7 +208,8 @@ pub async fn get_replies(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<V
     Ok(posts)
 }
 
-pub async fn get_top_note(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
+// TODO: refactor tags in find_top_note
+pub async fn get_top_note(_tag: &str, post_id: i64, pool: &SqlitePool) -> Result<Option<Post>> {
     Ok(
         match crate::probabilities::find_top_note(post_id, pool).await? {
             None => None,
@@ -216,6 +218,8 @@ pub async fn get_top_note(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<
     )
 }
 
+// TODO: we probably only want to allow a limited character set
+// TODO: can #global be gamed? Does it give you some advantage to post in #global?
 fn normalize_tag(tag: &str) -> String {
     tag.to_lowercase()
         .chars()
@@ -223,29 +227,29 @@ fn normalize_tag(tag: &str) -> String {
         .collect()
 }
 
-pub async fn get_top_level_posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
-    let tag_id = get_tag_id(tag, pool).await?;
-    let result = match tag_id {
-        Some(tag_id) => {
-            sqlx::query_as::<_, Post>(
-                r#"
-                    select *
-                    from posts
-                    join current_tally ct
-                    on posts.id = ct.post_id
-                    and ct.tag_id = ?
-                    where tags.tag = ?
-                    and parent_id is null
-                "#,
-            )
-            .bind(tag_id)
-            .fetch_all(pool)
-            .await?
-        }
-        None => vec![],
-    };
-    Ok(result)
-}
+// pub async fn get_top_level_posts_with_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
+//     let tag_id = get_tag_id(tag, pool).await?;
+//     let result = match tag_id {
+//         Some(tag_id) => {
+//             sqlx::query_as::<_, Post>(
+//                 r#"
+//                     select *
+//                     from posts
+//                     join current_tally ct
+//                     on posts.id = ct.post_id
+//                     and ct.tag_id = ?
+//                     where tags.tag = ?
+//                     and parent_id is null
+//                 "#,
+//             )
+//             .bind(tag_id)
+//             .fetch_all(pool)
+//             .await?
+//         }
+//         None => vec![],
+//     };
+//     Ok(result)
+// }
 
 pub async fn get_top_5_tags(pool: &SqlitePool) -> Result<Vec<String>> {
     let result = sqlx::query_scalar::<_, String>(
