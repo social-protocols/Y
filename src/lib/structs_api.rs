@@ -1,3 +1,4 @@
+use chatgpt::functions::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::structs::Direction;
@@ -34,6 +35,12 @@ pub struct ApiVote {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ApiCreatePost {
+    pub parent_id: Option<i64>,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum ApiDirection {
     Up,
     Neutral,

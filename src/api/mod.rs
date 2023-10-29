@@ -8,7 +8,7 @@ use axum::{
 
 use common::{
     auth,
-    structs_api::{ApiFrontpage, ApiPost, ApiPostPage, ApiVote},
+    structs_api::{ApiCreatePost, ApiFrontpage, ApiPost, ApiPostPage, ApiVote},
 };
 use sqlx::SqlitePool;
 
@@ -95,6 +95,23 @@ pub async fn vote(
         &pool,
     )
     .await?;
+
+    Ok(())
+}
+
+pub async fn create_post(
+    Extension(pool): Extension<SqlitePool>,
+    TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+    extract::Json(payload): extract::Json<ApiCreatePost>,
+) -> Result<(), AppError> {
+    // TODO: is it possible to get user from baerer token using axum middleware?
+    let secret = bearer.token();
+    let user = auth::user_from_secret(secret, &pool)
+        .await?
+        .ok_or(anyhow!("Unauthorized"))?; // TODO: return proper HTTP header, by sending a
+
+    // TODO: better http status code if post/note doesn't exist
+    db::create_post(&payload.content, payload.parent_id, &pool).await?;
 
     Ok(())
 }
