@@ -465,8 +465,6 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "chatgpt_rs"
 version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c8a252c161b36850bd202c735a7f224710a67758d91220d50a3bfd38dd1c7fc"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -1146,8 +1144,6 @@ dependencies = [
 [[package]]
 name = "gpt_fn_macros"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3de28e49624005eacf1e8a617586f6c9078a0359c5fc802a9caa6bf18c8a53d2"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -3497,6 +3493,7 @@ dependencies = [
  "rand",
  "reqwest",
  "rust-embed",
+ "schemars",
  "serde",
  "serde_json",
  "sqlx",
