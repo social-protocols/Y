@@ -89,6 +89,7 @@ pub async fn vote(
     // TODO: better http status code if post/note doesn't exist
     db::vote(
         user.id,
+        payload.tag.as_str(),
         payload.post_id,
         payload.note_id,
         payload.direction.to_direction(),

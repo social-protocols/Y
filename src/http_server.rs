@@ -4,7 +4,7 @@ use crate::api;
 use crate::http_static::static_handler;
 use crate::pages::{
     self, communities::community_frontpage, create_post::create_post, positions::positions,
-    tags::add_tag, view_post::view_post, vote::vote,
+    view_post::view_post, vote::tag_handler, vote::vote_handler,
 };
 use anyhow::Result;
 use axum::{
@@ -26,7 +26,8 @@ pub async fn start_http_server(sqlite_pool: SqlitePool) -> Result<()> {
         .route("/y/:tag", get(community_frontpage))
         .route("/create_post", post(create_post))
         .route("/y/:tag/post/:post_id", get(view_post))
-        .route("/vote", post(vote))
+        .route("/vote", post(vote_handler))
+        .route("/tag/", post(tag_handler))
         .route("/positions", get(positions))
         .route("/options", get(options));
 

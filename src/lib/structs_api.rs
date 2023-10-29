@@ -28,6 +28,7 @@ pub struct ApiPostPage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiVote {
+    pub tag: String,
     pub post_id: i64,
     #[serde(default = "default_none")]
     pub note_id: Option<i64>,
