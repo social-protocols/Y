@@ -3498,6 +3498,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rust-embed",
+ "schemars",
  "serde",
  "serde_json",
  "sqlx",
