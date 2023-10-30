@@ -26,7 +26,7 @@ pub async fn frontpage(
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<ApiFrontpage>, AppError> {
     let tag = GLOBAL_TAG;
-    let posts = db::list_top_level_posts(tag, &pool).await?;
+    let posts = db::get_posts_for_tag(tag, &pool).await?;
     Ok(Json(ApiFrontpage {
         posts: posts
             .iter()

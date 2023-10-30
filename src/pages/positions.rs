@@ -91,10 +91,11 @@ pub async fn get_positions_for_tag(
             post_id, direction
         from 
             current_vote 
-            join posts on (post_id = id)
+            join posts on (post_id = posts.id)
+            join tags on (tag_id = tags.id)
         where 
             user_id = ?
-            and tag = tag
+            and tag = ?
             and posts.parent_id is null
     "#;
 

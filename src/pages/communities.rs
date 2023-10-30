@@ -16,7 +16,7 @@ pub async fn community_frontpage(
     Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
-    let posts = db::list_top_level_posts(tag.as_str(), &pool).await?;
+    let posts = db::get_posts_for_tag(tag.as_str(), &pool).await?;
     let content = html! {
         (create_post_form())
         h1 class="text-xl font-bold mb-4" { (format!("#{tag}")) }
