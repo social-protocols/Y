@@ -156,29 +156,32 @@ async fn get_tag_id(tag: &str, pool: &SqlitePool) -> Result<Option<i64>> {
 }
 
 pub async fn get_posts_for_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
-    let tag_id = get_tag_id(tag, pool).await?;
-    // fmt.println("Got tag id for", tag_id, tag)
-    let result = match tag_id {
+    print!("Getting id for tag {}", tag);
+    let tag_id: Option<i64> = get_tag_id(tag, pool).await?;
+
+    let result: Vec<Post> = match tag_id {
         Some(tag_id) => {
+            print!("Got id for tag {}", tag_id);
+
             sqlx::query_as::<_, Post>(
                 r#"
-                    select
-                        id
-                        , content
-                        , parent_id
-                        , author_id
-                    from posts
-                    join current_tally ct
-                    on posts.id = ct.post_id
-                    and ct.tag_id = ?
-                    where posts.parent_id is null
-                    order by ct.upvotes * (1 + log(ct.upvotes / ct.votes)) desc
-                "#,
+                        select
+                              id
+                            , content
+                            , parent_id
+                            , author_id
+                        from posts
+                        join current_tally ct
+                        on posts.id = ct.post_id
+                        and ct.tag_id = ?
+                        where posts.parent_id is null
+                        order by ct.upvotes - (ct.votes - ct.upvotes) desc
+                        --order by ct.upvotes * (1 + log((ct.upvotes + 1) / (ct.votes + 2))) desc
+                    "#,
             )
-            .bind(tag_id)
+            .bind(0)
             .fetch_all(pool)
-            .await?
-        }
+            .await?        }
         None => vec![],
     };
     Ok(result)
