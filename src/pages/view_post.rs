@@ -14,19 +14,20 @@ use common::structs::{Post, User};
 use super::base_template::BaseTemplate;
 
 pub async fn view_post(
-    Path(post_id): Path<i64>,
+    Path((tag_string, post_id)): Path<(String, i64)>,
     _maybe_user: Option<User>,
     Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
     let post = db::get_post(post_id, &pool).await?;
+    let tag = tag_string.as_str();
     let content = match post {
         Some(post) => {
             html! {
-                (parent_thread(&post, &pool).await?)
-                (post_details(&post, true, &pool).await?)
-                (replies(post_id, &pool).await?)
-                (load_positions_js(post_id))
+                (parent_thread(tag, &post, &pool).await?)
+                (post_details(tag, &post, true, &pool).await?)
+                (replies(tag, post_id, &pool).await?)
+                (load_positions_js(tag, post_id))
             }
         }
         None => html! { "Post not found" },
@@ -34,7 +35,7 @@ pub async fn view_post(
     Ok(base.title("𝕐").content(content).render())
 }
 
-async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
+async fn parent_thread(tag: &str, post: &Post, pool: &SqlitePool) -> Result<Markup> {
     let transitive_parents: Vec<Post> = db::get_transitive_parents(post, pool).await?;
     Ok(html! {
         a href="/" {
@@ -44,7 +45,7 @@ async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
         }
 
         @for parent in transitive_parents.iter().rev() {
-            a href=(format!("/view_post/{}", parent.id)) {
+            a href=(format!("/y/{}/post/{}", tag, parent.id)) {
 
                 ({
                     html! {
@@ -58,8 +59,8 @@ async fn parent_thread(post: &Post, pool: &SqlitePool) -> Result<Markup> {
     })
 }
 
-async fn replies(post_id: i64, pool: &SqlitePool) -> Result<Markup> {
-    let replies = db::get_replies(post_id, pool).await?;
+async fn replies(tag: &str, post_id: i64, pool: &SqlitePool) -> Result<Markup> {
+    let replies = db::get_replies(tag, post_id, pool).await?;
 
     Ok(html! {
         div {

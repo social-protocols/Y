@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
 
+use crate::constants::GLOBAL_TAG;
+
 use axum::{
     extract::{self, Path},
     headers::{authorization::Bearer, Authorization},
@@ -19,10 +21,12 @@ pub async fn create_user(Extension(pool): Extension<SqlitePool>) -> Result<Strin
     Ok(user.secret)
 }
 
+
 pub async fn frontpage(
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<ApiFrontpage>, AppError> {
-    let posts = db::list_top_level_posts(&pool).await?;
+    let tag = GLOBAL_TAG;
+    let posts = db::list_top_level_posts(tag, &pool).await?;
     Ok(Json(ApiFrontpage {
         posts: posts
             .iter()
@@ -39,11 +43,12 @@ pub async fn view_post(
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<Option<ApiPostPage>>, AppError> {
     let post = db::get_post(post_id, &pool).await?;
+    let tag = GLOBAL_TAG;
     Ok(Json(match post {
         Some(post) => {
             let parent_context = db::get_transitive_parents(&post, &pool).await?;
-            let top_note = db::get_top_note(post_id, &pool).await?;
-            let replies = db::get_replies(post_id, &pool).await?;
+            let top_note = db::get_top_note(tag, post_id, &pool).await?;
+            let replies = db::get_replies(tag, post_id, &pool).await?;
             Some(ApiPostPage {
                 parent_context: parent_context
                     .iter()
@@ -111,8 +116,10 @@ pub async fn create_post(
         .await?
         .ok_or(anyhow!("Unauthorized"))?; // TODO: return proper HTTP header, by sending a
 
+    let tag = GLOBAL_TAG;
+
     // TODO: better http status code if post/note doesn't exist
-    db::create_post(&payload.content, payload.parent_id, &pool).await?;
+    db::create_post(tag, payload.parent_id, &payload.content, user.id, &pool).await?;
 
     Ok(())
 }

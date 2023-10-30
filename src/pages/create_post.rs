@@ -1,6 +1,7 @@
 use crate::{db, error::AppError};
 use anyhow::anyhow;
 use axum::{extract::Query, response::IntoResponse, Extension, Form};
+use common::auth;
 use http::StatusCode;
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -13,6 +14,7 @@ fn default_none<T>() -> Option<T> {
 #[derive(Deserialize)]
 pub struct CreatePostForm {
     post_content: String,
+    tag: String,
     #[serde(default = "default_none")]
     post_parent_id: Option<i64>,
 }
@@ -25,17 +27,21 @@ pub struct Redirect {
 
 pub async fn create_post(
     redirect: Query<Redirect>,
-    _cookies: Cookies,
+    cookies: Cookies,
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<CreatePostForm>,
 ) -> Result<impl IntoResponse, AppError> {
-    // let user = User::get_or_create(&cookies, &pool).await?;
+    let user = auth::get_or_create_user(&cookies, &pool).await?;
     if form_data.post_content.is_empty() {
         return Err(AppError(anyhow!("Post content cannot be empty")));
     }
+    let tag = form_data.tag;
+
     let _post_id = db::create_post(
-        form_data.post_content.as_str(),
+        tag.as_str(),
         form_data.post_parent_id,
+        form_data.post_content.as_str(),
+        user.id,
         &pool,
     )
     .await?;

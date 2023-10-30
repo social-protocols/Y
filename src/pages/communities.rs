@@ -16,11 +16,11 @@ pub async fn community_frontpage(
     Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
-    let posts = db::get_top_level_posts_with_tag(tag.as_str(), &pool).await?;
+    let posts = db::list_top_level_posts(tag.as_str(), &pool).await?;
     let content = html! {
         (create_post_form())
         h1 class="text-xl font-bold mb-4" { (format!("#{tag}")) }
-        (post_feed(posts, &pool).await?)
+        (post_feed(tag.as_str(), posts, &pool).await?)
     };
     Ok(base.title("Y").content(content).render())
 }

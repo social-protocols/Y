@@ -4,7 +4,7 @@ use crate::{
     pages::{
         base_template::BaseTemplate,
         components::{create_post_form, post_feed},
-        positions::load_positions_js_for_homepage,
+        positions::load_positions_js_for_tag,
     },
 };
 use common::structs::User;
@@ -15,12 +15,14 @@ use maud::{html, Markup};
 
 use sqlx::SqlitePool;
 
+use crate::constants::GLOBAL_TAG;
+
 pub async fn frontpage(
     _maybe_user: Option<User>,
     Extension(pool): Extension<SqlitePool>,
     base: BaseTemplate,
 ) -> Result<Markup, AppError> {
-    let posts = db::list_top_level_posts(&pool).await?;
+    let posts = db::get_posts_for_tag(GLOBAL_TAG, &pool).await?;
     let content = html! {
         div class="mb-10" {
             div class="fixed top-0 left-0 m-5" {
@@ -28,8 +30,8 @@ pub async fn frontpage(
             }
             div {
                 (create_post_form())
-                (post_feed(posts, &pool).await?)
-                (load_positions_js_for_homepage())
+                (post_feed(GLOBAL_TAG, posts, &pool).await?)
+                (load_positions_js_for_tag(GLOBAL_TAG))
             }
         }
     };

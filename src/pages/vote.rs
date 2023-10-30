@@ -105,7 +105,7 @@ pub async fn tag_handler(
     cookies: Cookies,
     Extension(pool): Extension<SqlitePool>,
     Form(form_data): Form<TagRequest>,
-) -> Result<Markup> {
+) -> Result<Markup, AppError> {
     let user = auth::get_or_create_user(&cookies, &pool).await?;
     let re = Regex::new(r"[^\p{L}]+").unwrap(); // This regex matches one or more commas or spaces
     let tags = re.split(form_data.tags.as_str());
@@ -120,5 +120,5 @@ pub async fn tag_handler(
         )
         .await?;
     }
-    Ok(tag_form(form_data.post_id))
+    Ok(tag_form(form_data.post_id, form_data.note_id))
 }

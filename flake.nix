@@ -48,6 +48,8 @@
               # deployemnt
               flyctl
               docker
+
+              # darwin.apple_sdk.frameworks.Security
             ];
           };
           buildRust = with pkgs; pkgs.mkShellNoCC {

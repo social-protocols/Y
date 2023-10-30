@@ -155,8 +155,9 @@ async fn get_tag_id(tag: &str, pool: &SqlitePool) -> Result<Option<i64>> {
     Ok(tag_id)
 }
 
-pub async fn list_top_level_posts(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
+pub async fn get_posts_for_tag(tag: &str, pool: &SqlitePool) -> Result<Vec<Post>> {
     let tag_id = get_tag_id(tag, pool).await?;
+    // fmt.println("Got tag id for", tag_id, tag)
     let result = match tag_id {
         Some(tag_id) => {
             sqlx::query_as::<_, Post>(
@@ -255,7 +256,7 @@ pub async fn get_top_5_tags(pool: &SqlitePool) -> Result<Vec<String>> {
     let result = sqlx::query_scalar::<_, String>(
         r#"
             select tag
-            from current_tally
+            from current_tally join tags on (tags.id = tag_id) 
             group by tag_id
             order by count(*) desc
             limit 5

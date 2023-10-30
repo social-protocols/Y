@@ -87,7 +87,7 @@ pub fn vote_form(tag: &str, post_id: i64, note_id: Option<i64>) -> Markup {
 
 pub fn reply_form(tag: &str, parent_id: i64) -> Markup {
     html! {
-        form hx-post=(format!("/create_post?redirect=/view_post/{}", parent_id)) {
+        form hx-post=(format!("/create_post?redirect=/y/{}/post/{}", tag, parent_id)) {
             div class="w-full flex" {
                 input
                     type="hidden"
@@ -119,7 +119,7 @@ pub fn reply_form(tag: &str, parent_id: i64) -> Markup {
     }
 }
 
-pub async fn tag_form(post_id: i64, note_id: Option<i64>) -> Markup {
+pub fn tag_form(post_id: i64, note_id: Option<i64>) -> Markup {
     html! {
         div class="flex nowrap tag-form" {
             form hx-post=(format!("/tag")) {
@@ -130,9 +130,11 @@ pub async fn tag_form(post_id: i64, note_id: Option<i64>) -> Markup {
                         type="hidden"
                         name="post_id"
                         value=(post_id) {}
-                    @if let Some(note_id) = note_id {
-                        input type="hidden" value=(note_id) name="note_id"
+
+                    @if let Some(nid) = note_id {
+                        input type="hidden" value=(nid) name="note_id" {}
                     }
+
                     div class="mr-1" {
                         textarea
                             name="tags"
@@ -152,11 +154,11 @@ pub async fn tag_form(post_id: i64, note_id: Option<i64>) -> Markup {
     }
 }
 
-pub async fn post_feed(posts: Vec<Post>, pool: &SqlitePool) -> Result<Markup> {
+pub async fn post_feed(tag: &str, posts: Vec<Post>, pool: &SqlitePool) -> Result<Markup> {
     Ok(html! {
         div {
             @for post in posts.iter() {
-                div { (post_details(post, false, pool).await?) }
+                div { (post_details(tag, post, false, pool).await?) }
             }
         }
     })
