@@ -1,4 +1,5 @@
 use anyhow::Result;
+use itertools::Itertools;
 use sqlx::SqlitePool;
 use std::fmt;
 
@@ -13,14 +14,11 @@ fn global_prior() -> BetaDistribution {
     }
 }
 
-
 #[derive(sqlx::FromRow, sqlx::Decode, Debug, Clone, Copy)]
 pub struct Tally {
     pub upvotes: i64,
     pub total: i64,
 }
-
-
 
 impl fmt::Display for Tally {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,7 +30,6 @@ const EMPTY_TALLY: Tally = Tally {
     upvotes: 0,
     total: 0,
 };
-
 
 #[derive(Debug, Clone)]
 pub struct BetaDistribution {
@@ -94,7 +91,7 @@ impl InformedTallyQueryResult {
             for_note: Tally {
                 upvotes: self.upvotes_for_note,
                 total: self.votes_for_note,
-            }
+            },
         }
     }
 }
@@ -150,19 +147,8 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i6
         .map(|result| result.informed_tally())
         .collect();
 
-    let mut subnote_tallies: HashMap<i64, Vec<InformedTally>> = HashMap::new();
-
-    // TODO: somebody who actually understands Rust borrow checking rewrite this to avoid unecessarily cloning
-    // the array each time we append to it.
-    for tally in tallies.iter() {
-        let key = tally.post_id;
-        let mut value = match subnote_tallies.get(&key) {
-            None => Vec::new(),
-            Some(vec) => vec.clone(),
-        };
-        value.push(tally.clone());
-        subnote_tallies.insert(key, value);
-    }
+    let subnote_tallies: HashMap<i64, Vec<&InformedTally>> =
+        tallies.iter().into_group_map_by(|tally| tally.post_id);
 
     let t = current_tally(post_id, pool).await?;
 
@@ -183,15 +169,14 @@ pub async fn find_top_note(post_id: i64, pool: &SqlitePool) -> Result<Option<(i6
 fn find_top_note_given_tallies(
     post_id: i64,
     post_tally: Tally,
-    subnote_tallies: &HashMap<i64, Vec<InformedTally>>,
+    subnote_tallies: &HashMap<i64, Vec<&InformedTally>>,
 ) -> (i64, f64, f64) {
+    let mut p_of_a_given_not_shown_top_note = global_prior().update(post_tally).average;
 
-    let mut p_of_a_given_not_shown_top_note = global_prior()
-        .update(post_tally)
-        .average;
-
-    println!("p_of_a_given_not_shown_top_note for post {} = {}", post_id, p_of_a_given_not_shown_top_note);
-
+    println!(
+        "p_of_a_given_not_shown_top_note for post {} = {}",
+        post_id, p_of_a_given_not_shown_top_note
+    );
 
     let mut p_of_a_given_shown_top_note = p_of_a_given_not_shown_top_note;
 
@@ -199,11 +184,17 @@ fn find_top_note_given_tallies(
 
     let tallies = subnote_tallies.get(&post_id);
     if tallies.is_none() {
-        println!("top note for post {} is note {} with p={} and q={}", post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
+        println!(
+            "top note for post {} is note {} with p={} and q={}",
+            post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note
+        );
         // Bit of a hack. Should just get overall tally
-        return (top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
+        return (
+            top_note_id,
+            p_of_a_given_shown_top_note,
+            p_of_a_given_not_shown_top_note,
+        );
     }
-
 
     for tally in tallies.unwrap().iter() {
         let (_, p_of_b_given_shown_top_subnote, p_of_b_given_not_shown_top_subnote) =
@@ -219,8 +210,8 @@ fn find_top_note_given_tallies(
             .average;
         let delta = p_of_a_given_shown_this_note - p_of_a_given_not_shown_this_note;
 
-        let p_of_a_given_shown_this_note_and_top_subnote = p_of_a_given_not_shown_this_note
-            + delta * support;
+        let p_of_a_given_shown_this_note_and_top_subnote =
+            p_of_a_given_not_shown_this_note + delta * support;
 
         println!("\tFor post {} and note {}, p_of_a_given_shown_this_note={}, p_of_a_given_not_shown_this_note={}, delta={}, support={}", post_id, tally.note_id, p_of_a_given_shown_this_note, p_of_a_given_not_shown_this_note, delta, support);
 
@@ -233,7 +224,10 @@ fn find_top_note_given_tallies(
         }
     }
 
-    println!("top note for post {} is note {} with p={} and q={}", post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note);
+    println!(
+        "top note for post {} is note {} with p={} and q={}",
+        post_id, top_note_id, p_of_a_given_shown_top_note, p_of_a_given_not_shown_top_note
+    );
 
     (
         top_note_id,
@@ -242,11 +236,7 @@ fn find_top_note_given_tallies(
     )
 }
 
-
-async fn current_tally(
-    post_id: i64,
-    pool: &SqlitePool,
-) -> Result<Tally> {
+async fn current_tally(post_id: i64, pool: &SqlitePool) -> Result<Tally> {
     // first, get table which has stats for this note, all subnotes, and all subnotes
     let query = r#"
         select upvotes, votes as total from current_tally where post_id = ? 
@@ -256,8 +246,7 @@ async fn current_tally(
     let tally: Option<Tally> = sqlx::query_as::<_, Tally>(query)
         .bind(post_id)
         .fetch_optional(pool)
-        .await?; 
+        .await?;
 
     Ok(tally.unwrap_or(EMPTY_TALLY))
-
 }
